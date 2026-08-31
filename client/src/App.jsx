@@ -1,75 +1,84 @@
-import { useEffect, useState } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
+import { AuthProvider, useAuth } from './auth.jsx';
 
-function Health() {
-  const [estado, setEstado] = useState({ cargando: true });
-  useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
-      .then(({ ok, j }) => setEstado({ cargando: false, ok, j }))
-      .catch((e) => setEstado({ cargando: false, ok: false, j: { error: String(e) } }));
-  }, []);
+import Inicio from './pages/Inicio.jsx';
+import AlumnoLogin from './pages/alumno/Login.jsx';
+import NuevaSolicitud from './pages/alumno/NuevaSolicitud.jsx';
+import MisSolicitudes from './pages/alumno/MisSolicitudes.jsx';
+import Seguimiento from './pages/Seguimiento.jsx';
+import Validar from './pages/Validar.jsx';
+import AvisoPrivacidad from './pages/AvisoPrivacidad.jsx';
+import StaffLogin from './pages/staff/Login.jsx';
+import StaffLayout from './pages/staff/Layout.jsx';
+import Bandeja from './pages/staff/Bandeja.jsx';
+import SolicitudDetalle from './pages/staff/SolicitudDetalle.jsx';
+import Folios from './pages/staff/Folios.jsx';
+import Consolidado from './pages/staff/Consolidado.jsx';
+import Configuracion from './pages/staff/Configuracion.jsx';
+import EnfermeriaPanel from './pages/enfermeria/Panel.jsx';
 
-  if (estado.cargando) return <span className="pill">consultando…</span>;
-  return (
-    <>
-      <span className={'pill ' + (estado.ok ? 'ok' : 'mal')}>
-        {estado.ok ? 'API en línea' : 'API con problemas'}
-      </span>
-      <pre style={{ marginTop: 12, fontSize: '.8rem', overflowX: 'auto' }}>
-        {JSON.stringify(estado.j, null, 2)}
-      </pre>
-    </>
-  );
+function RequiereAlumno({ children }) {
+  const { alumno } = useAuth();
+  return alumno ? children : <Navigate to="/solicitar/acceso" replace />;
 }
 
-function Home() {
-  return (
-    <div className="wrap">
-      <h1>Justificantes FCCA</h1>
-      <p className="sub">
-        Sistema de control y emisión de justificantes de inasistencia — UMSNH.
-        Andamiaje (Fase 0). Ver <code>PLAN.md</code>.
-      </p>
-
-      <div className="card">
-        <h2>Estado del backend</h2>
-        <Health />
+function RequiereStaff({ roles, children }) {
+  const { staff } = useAuth();
+  if (!staff) return <Navigate to="/staff/acceso" replace />;
+  if (roles && !roles.includes(staff.rol)) {
+    return (
+      <div className="wrap">
+        <h1>Sin permiso</h1>
+        <p className="sub">Tu rol ({staff.rol}) no tiene acceso a esta sección.</p>
+        <Link to="/staff">← Volver</Link>
       </div>
-
-      <div className="card">
-        <h2>Superficies previstas (Fase 1)</h2>
-        <ul className="rutas">
-          <li>Portal del alumno — login por código y formulario</li>
-          <li>Seguimiento — <code>/solicitud/&lt;token&gt;</code></li>
-          <li>Bandeja de revisión — encargada / supervisor</li>
-          <li>Panel de enfermería</li>
-          <li>Configuración — supervisor</li>
-          <li>Validación pública — <Link to="/validar">/validar</Link></li>
-          <li>Aviso de privacidad — <Link to="/aviso-de-privacidad">/aviso-de-privacidad</Link></li>
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function Pendiente({ titulo }) {
-  return (
-    <div className="wrap">
-      <h1>{titulo}</h1>
-      <p className="sub">Pendiente de implementar (Fase 1).</p>
-      <p><Link to="/">← Inicio</Link></p>
-    </div>
-  );
+    );
+  }
+  return children;
 }
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/validar" element={<Pendiente titulo="Validación de justificante" />} />
-      <Route path="/aviso-de-privacidad" element={<Pendiente titulo="Aviso de Privacidad" />} />
-      <Route path="*" element={<Pendiente titulo="Página no encontrada" />} />
-    </Routes>
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<Inicio />} />
+
+        {/* Alumno */}
+        <Route path="/solicitar/acceso" element={<AlumnoLogin />} />
+        <Route path="/solicitar" element={<RequiereAlumno><NuevaSolicitud /></RequiereAlumno>} />
+        <Route path="/mis-solicitudes" element={<RequiereAlumno><MisSolicitudes /></RequiereAlumno>} />
+        <Route path="/solicitud/:token" element={<Seguimiento />} />
+
+        {/* Público */}
+        <Route path="/validar" element={<Validar />} />
+        <Route path="/aviso-de-privacidad" element={<AvisoPrivacidad />} />
+
+        {/* Enfermería */}
+        <Route path="/enfermeria/acceso" element={<StaffLogin destino="/enfermeria" />} />
+        <Route
+          path="/enfermeria"
+          element={<RequiereStaff roles={['enfermeria']}><EnfermeriaPanel /></RequiereStaff>}
+        />
+
+        {/* Staff */}
+        <Route path="/staff/acceso" element={<StaffLogin destino="/staff" />} />
+        <Route
+          path="/staff"
+          element={<RequiereStaff roles={['encargada', 'supervisor', 'coordinador']}><StaffLayout /></RequiereStaff>}
+        >
+          <Route index element={<Navigate to="bandeja" replace />} />
+          <Route path="bandeja" element={<Bandeja />} />
+          <Route path="solicitud/:id" element={<SolicitudDetalle />} />
+          <Route path="folios" element={<Folios />} />
+          <Route path="consolidado" element={<Consolidado />} />
+          <Route
+            path="configuracion"
+            element={<RequiereStaff roles={['supervisor']}><Configuracion /></RequiereStaff>}
+          />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </AuthProvider>
   );
 }
