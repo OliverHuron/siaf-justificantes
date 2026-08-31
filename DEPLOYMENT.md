@@ -268,7 +268,7 @@ npm run seed
   | usuario | rol | correo |
   |---|---|---|
   | `ventanilla` | encargada | ventanilla@umich.mx |
-  | `dirección` | supervisor | direccion@umich.mx |
+  | `direccion` | supervisor | direccion@umich.mx |
   | `coordinador` | coordinador | coordinador@umich.mx |
   | `enfermeria` | enfermeria | enfermeria@umich.mx |
 

@@ -19,7 +19,7 @@ Google Forms + Google Sheets + Excel + envío manual del oficio.
   | Rol | Cuenta | Usuario | Contraseña | Función |
   |---|---|---|---|---|
   | `encargada` | `ventanilla@umich.mx` | `ventanilla` | `123456` | Recibe y revisa solicitudes, aprueba/rechaza, mensajes al alumno. |
-  | `supervisor` | `direccion@umich.mx` | `dirección` | `123456` | Todo lo de encargada + anular folios + Configuración + horarios + bitácora + usuarios. |
+  | `supervisor` | `direccion@umich.mx` | `direccion` | `123456` | Todo lo de encargada + anular folios + Configuración + horarios + bitácora + usuarios. |
   | `coordinador` | `coordinador@umich.mx` | `coordinador` | `123456` | Solo lectura + consolidado por sección/semestre. |
   (Todas `must_change_password = true`.)
 - **Días = mini-calendario.** Tarjetas por mes/año con los días; el alumno marca el/los
@@ -336,7 +336,7 @@ un lunes y un martes → los dos correos deben llegar.
    + `cloudflared tunnel route dns …`.
 5. GitHub Actions: runner `siaf`; `deploy.yml` con `--name siaf-justificantes`.
 6. Dependencias de Chromium headless en el server (una vez).
-7. `seed`: **4 usuarios** (encargada `ventanilla`, supervisor `dirección`, coordinador
+7. `seed`: **4 usuarios** (encargada `ventanilla`, supervisor `direccion`, coordinador
    `coordinador`, enfermería `enfermeria`), horario de prueba (sección 4), plantillas de
    correo + 1 de cuerpo genérica, catálogo de secciones (lista 1–93 del formulario actual)
    y semestres, config por defecto.

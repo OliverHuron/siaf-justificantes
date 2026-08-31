@@ -30,10 +30,10 @@ const SEMESTRE_ETIQUETA = {
 };
 
 const USUARIOS = [
-  { usuario: 'ventanilla',  nombre: 'Ventanilla (Encargada)',      email: 'ventanilla@umich.mx',  rol: 'encargada' },
-  { usuario: 'dirección',   nombre: 'Dirección (Supervisor)',      email: 'direccion@umich.mx',   rol: 'supervisor' },
-  { usuario: 'coordinador', nombre: 'Coordinación',                email: 'coordinador@umich.mx', rol: 'coordinador' },
-  { usuario: 'enfermeria',  nombre: 'Enfermería FCCA',             email: 'enfermeria@umich.mx',  rol: 'enfermeria' },
+  { usuario: 'ventanilla',  nombre: 'Ventanilla (Encargada)', email: 'ventanilla@umich.mx',  rol: 'encargada' },
+  { usuario: 'direccion',   nombre: 'Dirección (Supervisor)', email: 'direccion@umich.mx',   rol: 'supervisor' },
+  { usuario: 'coordinador', nombre: 'Coordinación',           email: 'coordinador@umich.mx', rol: 'coordinador' },
+  { usuario: 'enfermeria',  nombre: 'Enfermería FCCA',        email: 'enfermeria@umich.mx',  rol: 'enfermeria' },
 ];
 
 // Horario de PRUEBA: semestre primero, sección 1. Lunes y martes.

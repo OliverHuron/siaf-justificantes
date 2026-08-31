@@ -45,4 +45,4 @@ npm run dev                   # http://localhost:5173  (proxya /api al :5004)
 ```
 
 Cuentas sembradas (contraseña temporal `123456`, se cambia al primer ingreso):
-`ventanilla` (encargada) · `dirección` (supervisor) · `coordinador` · `enfermeria`.
+`ventanilla` (encargada) · `direccion` (supervisor) · `coordinador` · `enfermeria`.
