@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
+import CodigoInput from '../../components/CodigoInput.jsx';
 
 export default function AlumnoLogin() {
   const { setAlumnoToken } = useAuth();
@@ -64,8 +65,7 @@ export default function AlumnoLogin() {
           {err && <div className="aviso error">{err}</div>}
           {msg && <div className="aviso info">{msg}</div>}
           <label>Código de 6 dígitos</label>
-          <input type="text" value={code} required autoFocus inputMode="numeric" maxLength={6}
-            placeholder="______" onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+          <CodigoInput value={code} onChange={setCode} n={6} />
           <button type="submit" disabled={cargando || code.length !== 6}>
             {cargando ? 'Verificando…' : 'Entrar'}
           </button>
