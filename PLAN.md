@@ -383,19 +383,24 @@ cliente); lo que falte va como marcador `[…]`.
 
 ## 13. Roadmap
 
-**Fase 0 — Andamiaje**: `server/` + `client/`, `001_initial.sql`, `seed`, `deploy.yml`,
-`/api/health`, pipeline en verde.
+**Fase 0 — Andamiaje** — ✅ hecha (commit `6dd1ce9`): `server/` + `client/`,
+`001_initial.sql`, `migrate`/`seed`, `deploy.yml`, `/api/health`.
 
-**Fase 1 — MVP (sustituye a Google Forms)**: 3 roles · OTP `@umich.mx` · formulario con
-tipos + semestre/sección multi + **mini-calendario** + adjuntos por tipo + regla de 10 días
-+ regla de 2 pendientes · **horarios** (CRUD + import) y **ruteo automático a profesores** ·
-bandeja con triage/recordatorio/filtros/envío rápido · aprobar/rechazar/ventanilla/
-confirmar enfermería · hilo bilateral · folio + `token_qr` · **PDF del oficio con QR
-enviado a los profesores** · acuse + enlace de seguimiento · plantillas de correo y de
-cuerpo · Configuración · `/validar` · **aviso de privacidad** · bitácora.
+**Fase 1 — MVP (sustituye a Google Forms)** — ✅ hecha (commits `c1ecd45`, `bf07538`,
+`85f85d8`, `d653aa1`): 4 roles · OTP `@umich.mx` · formulario con tipos + semestre/sección
+multi + mini-calendario + adjuntos por tipo + regla de 10 días hábiles + regla de 2
+pendientes · horarios (CRUD + import CSV) y **ruteo automático a profesores** · bandeja con
+triage/recordatorio/filtros · aprobar/rechazar/ventanilla/confirmar enfermería · hilo
+bilateral · folio `F-AAAA-NNNN-CC` + `token_qr` · **PDF del oficio con QR enviado a los
+profesores** (Puppeteer) · acuse + enlace de seguimiento · plantillas de correo y de cuerpo ·
+Configuración (SMTP/plantillas/horarios/parámetros/usuarios) · panel de enfermería ·
+`/validar` · consolidado · aviso de privacidad · bitácora.
+*Pendiente de Fase 1:* probar migrate/seed en el servidor y el primer deploy real;
+SMTP real (hasta ahora simulado en dev); UI de cambio de contraseña de staff.
 
-**Fase 2 — Operación**: log de escaneos + alertas de reventa · PDF bajo demanda para el
-alumno · consolidado · banderas refinadas · TOTP · afinar panel de coordinador.
+**Fase 2 — Operación**: alertas de reventa sobre `verificaciones_qr` · PDF bajo demanda
+para el alumno desde seguimiento · banderas refinadas · TOTP para staff · lista de días
+feriados · consolidado en PDF.
 
 **Fase 3 — Integraciones**: BD real de horarios/materias/profesores (elimina el CRUD
 manual) · BD de alumnos / OAuth en producción → SSO institucional y autollenado de
