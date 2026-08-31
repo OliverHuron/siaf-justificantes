@@ -1,0 +1,74 @@
+'use strict';
+
+const db = require('../db');
+const { diasHabilesEntre, iso } = require('./dias');
+
+const MATRICULA_RE = /^\d{7}[A-Za-z]$/; // 7 dígitos + letra (formato observado)
+
+/**
+ * Calcula las banderas de una solicitud recién enviada. No bloquea; solo
+ * marca lo que la encargada debe mirar con atención (PLAN §8).
+ *
+ * @param {object} s  { matricula, tipo, fechas: string[], semestres, secciones }
+ * @param {object} reglas  { diasLimite }
+ * @returns {object} banderas -> { clave: {detalle} }
+ */
+async function calcular(s, reglas) {
+  const banderas = {};
+  const fechas = (s.fechas || []).map((f) => String(f).slice(0, 10));
+  const exentoVentana = s.tipo === 'caso_especial' || s.tipo === 'enfermeria_fcca';
+
+  // fuera_de_ventana: alguna fecha excede el límite de días hábiles
+  if (!exentoVentana) {
+    const hoy = iso(new Date());
+    const excedidas = fechas.filter((f) => diasHabilesEntre(f, hoy) > reglas.diasLimite);
+    if (excedidas.length) {
+      banderas.fuera_de_ventana = { fechas: excedidas, limite: reglas.diasLimite };
+    }
+  }
+
+  // matricula_formato
+  if (!MATRICULA_RE.test(String(s.matricula || '').trim())) {
+    banderas.matricula_formato = { valor: s.matricula };
+  }
+
+  // traslape: fechas que chocan con otra solicitud no rechazada de la misma matrícula
+  if (fechas.length) {
+    const r = await db.query(
+      `SELECT id, fechas FROM solicitudes
+        WHERE upper(matricula_declarada) = upper($1)
+          AND estado <> 'rechazada' AND estado <> 'cancelada'`,
+      [s.matricula]
+    );
+    const previas = new Set();
+    for (const row of r.rows) (row.fechas || []).forEach((f) => previas.add(iso(new Date(f))));
+    const choque = fechas.filter((f) => previas.has(f));
+    if (choque.length) banderas.traslape = { fechas: choque };
+
+    // duplicada: misma matrícula + mismas fechas + mismo tipo
+    const dup = await db.query(
+      `SELECT id FROM solicitudes
+        WHERE upper(matricula_declarada) = upper($1)
+          AND tipo = $2
+          AND estado <> 'rechazada' AND estado <> 'cancelada'
+          AND fechas @> $3::date[] AND fechas <@ $3::date[]
+        LIMIT 1`,
+      [s.matricula, s.tipo, fechas]
+    );
+    if (dup.rowCount) banderas.duplicada = { solicitud_id: dup.rows[0].id };
+  }
+
+  // repetidor: > 3 aprobadas en los últimos 60 días
+  const rep = await db.query(
+    `SELECT count(*)::int AS n FROM solicitudes
+      WHERE upper(matricula_declarada) = upper($1)
+        AND estado = 'aprobada'
+        AND decidido_en > now() - interval '60 days'`,
+    [s.matricula]
+  );
+  if (rep.rows[0].n > 3) banderas.repetidor = { aprobadas_60d: rep.rows[0].n };
+
+  return banderas;
+}
+
+module.exports = { calcular, MATRICULA_RE };

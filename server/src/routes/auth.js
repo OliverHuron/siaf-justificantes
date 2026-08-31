@@ -3,9 +3,9 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
-const config = require('../config');
 const { ApiError } = require('../middleware/error');
-const { firmarStaff, requireStaff } = require('../middleware/auth');
+const { firmarStaff, firmarAlumno, requireStaff } = require('../middleware/auth');
+const otp = require('../lib/otp');
 
 const router = express.Router();
 
@@ -74,17 +74,32 @@ router.post('/cambiar-password', requireStaff, async (req, res, next) => {
   }
 });
 
-// --- OTP de alumno: contrato definido, implementación en Fase 1 (PLAN §2.1 / §6) ---
+// --- OTP de alumno (PLAN §2.1) ---
 
-router.post('/alumno/solicitar-codigo', (req, res) => {
-  res.status(501).json({
-    error: 'No implementado (Fase 1)',
-    pista: `Validar dominio ${config.dominioAlumno}, generar OTP de 6 dígitos, rate-limit, enviar por SMTP`,
-  });
+/** POST /api/auth/alumno/solicitar-codigo  { email } */
+router.post('/alumno/solicitar-codigo', async (req, res, next) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) throw new ApiError(400, 'El correo es obligatorio');
+    const r = await otp.solicitarCodigo(email, req.ip);
+    res.json(r);
+  } catch (e) {
+    next(e);
+  }
 });
 
-router.post('/alumno/verificar-codigo', (req, res) => {
-  res.status(501).json({ error: 'No implementado (Fase 1)', pista: 'Verificar OTP y firmar JWT de alumno' });
+/** POST /api/auth/alumno/verificar-codigo  { email, code } -> JWT de alumno */
+router.post('/alumno/verificar-codigo', async (req, res, next) => {
+  try {
+    const { email, code } = req.body || {};
+    if (!email || !code) throw new ApiError(400, 'Faltan campos');
+    await otp.verificarCodigo(email, code);
+    const emailNorm = otp.normEmail(email);
+    const token = firmarAlumno({ email: emailNorm });
+    res.json({ token, email: emailNorm });
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = router;

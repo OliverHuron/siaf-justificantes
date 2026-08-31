@@ -1,7 +1,14 @@
 'use strict';
 
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const config = require('./config');
+
+// DATE (OID 1082) y DATE[] (OID 1182): devolver 'YYYY-MM-DD' tal cual, sin
+// convertir a Date (evita corrimientos de zona horaria en fechas de calendario).
+types.setTypeParser(1082, (v) => v);
+types.setTypeParser(1182, (v) =>
+  v == null || v === '{}' ? [] : v.replace(/^\{|\}$/g, '').split(',').map((s) => s.replace(/^"|"$/g, ''))
+);
 
 const pool = new Pool({
   host: config.db.host,
