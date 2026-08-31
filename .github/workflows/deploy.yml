@@ -1,0 +1,67 @@
+name: Deploy siaf-justificantes
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-siaf-justificantes
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Runner self-hosted que corre en el servidor SIAF (mismo de los otros proyectos).
+    runs-on: [self-hosted, siaf]
+
+    env:
+      APP_DIR: /var/www/siaf-justificantes
+      ENV_FILE: /var/www/.env.siaf-justificantes
+      PM2_NAME: siaf-justificantes
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Sincronizar código al directorio de despliegue
+        run: |
+          mkdir -p "$APP_DIR"
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude 'server/node_modules' \
+            --exclude 'client/node_modules' \
+            --exclude 'client/dist' \
+            --exclude 'server/storage' \
+            --exclude 'storage' \
+            ./ "$APP_DIR/"
+
+      - name: Restaurar .env de producción
+        run: |
+          test -f "$ENV_FILE" || { echo "Falta $ENV_FILE en el servidor"; exit 1; }
+          cp "$ENV_FILE" "$APP_DIR/server/.env"
+
+      - name: Instalar y migrar (backend)
+        working-directory: ${{ env.APP_DIR }}/server
+        run: |
+          npm ci --omit=dev
+          npm run migrate
+
+      - name: Instalar y construir (frontend)
+        working-directory: ${{ env.APP_DIR }}/client
+        run: |
+          npm ci
+          npm run build
+
+      - name: (Re)iniciar con PM2
+        working-directory: ${{ env.APP_DIR }}/server
+        run: |
+          pm2 describe "$PM2_NAME" > /dev/null 2>&1 \
+            && pm2 restart "$PM2_NAME" --update-env \
+            || pm2 start src/index.js --name "$PM2_NAME"
+          pm2 save
+
+      - name: Verificar salud
+        run: |
+          sleep 3
+          curl -fsS http://localhost:5004/api/health | tee /dev/stderr | grep -q '"status":"OK"'

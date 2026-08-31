@@ -1,0 +1,20 @@
+# dependencias
+node_modules/
+
+# entorno
+.env
+.env.local
+*.local
+
+# build del cliente
+client/dist/
+
+# almacenamiento de adjuntos y PDFs (nunca al repo)
+server/storage/
+storage/
+
+# logs y temporales
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
