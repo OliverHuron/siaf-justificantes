@@ -7,6 +7,8 @@ const auth = require('./auth');
 const catalogos = require('./catalogos');
 const solicitudes = require('./solicitudes');
 const seguimiento = require('./seguimiento');
+const revision = require('./revision');
+const validar = require('./validar');
 
 const router = express.Router();
 
@@ -15,6 +17,8 @@ router.use('/auth', auth);
 router.use('/catalogos', catalogos);
 router.use('/solicitudes', solicitudes);
 router.use('/seguimiento', seguimiento);
+router.use('/revision', revision);
+router.use('/validar', validar);
 
 /**
  * Stubs de Fase 1. Cada grupo tiene su contrato en PLAN.md §6; aquí solo
@@ -34,7 +38,6 @@ function stub(nombre, refPlan) {
   return r;
 }
 
-router.use('/revision', stub('revision', 'PLAN §6 (encargada/supervisor)'));
 router.use('/folios', stub('folios', 'PLAN §6 (supervisor)'));
 router.use('/config', stub('config', 'PLAN §9'));
 router.use('/plantillas', stub('plantillas', 'PLAN §9'));
@@ -42,6 +45,5 @@ router.use('/horarios', stub('horarios', 'PLAN §4 / §9'));
 router.use('/usuarios', stub('usuarios', 'PLAN §2.2'));
 router.use('/consolidado', stub('consolidado', 'PLAN §6'));
 router.use('/enfermeria', stub('enfermeria', 'PLAN §2.2 (panel de enfermería)'));
-router.use('/validar', stub('validar', 'PLAN §7 (público)'));
 
 module.exports = router;

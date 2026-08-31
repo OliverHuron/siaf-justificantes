@@ -83,4 +83,11 @@ function diaSemanaIso(fechaIso) {
   return g === 0 ? 7 : g;
 }
 
-module.exports = { diasHabilesEntre, dentroDeVentana, textoDias, diaSemanaIso, iso, aFecha };
+/** "Morelia, Michoacán, a 24 de agosto de 2026" para la fecha dada (hoy por defecto). */
+function fechaOficio(d = new Date()) {
+  return `Morelia, Michoacán, a ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
+}
+
+module.exports = {
+  MESES, diasHabilesEntre, dentroDeVentana, textoDias, diaSemanaIso, fechaOficio, iso, aFecha,
+};

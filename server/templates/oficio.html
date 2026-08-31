@@ -95,6 +95,19 @@
     font-size: 17px;
     margin-top: 30px;
   }
+  .validacion {
+    margin-top: 26px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .validacion .qr { width: 92px; height: 92px; flex: 0 0 auto; }
+  .validacion .qr-text { font-size: 13px; color: #333; line-height: 1.35; }
+  .validacion .qr-text .folio { font-weight: bold; }
+  @media print {
+    html, body { background: #fff; }
+    .page { margin: 0; box-shadow: none; }
+  }
 </style>
 </head>
 <body>
@@ -109,12 +122,12 @@
       </div>
 
       <div class="date-line">
-        Morelia, Michoacán 23 de agosto<br>
-        No. F94.
+        {{fecha_oficio}}<br>
+        No. {{folio}}.
       </div>
 
       <div class="addressee">
-        Profesores del Semestre quinto, Sección 26<br>
+        {{destinatario}}<br>
         Facultad de Contaduría y Ciencias Administrativas<br>
         Universidad Michoacana de San Nicolás de Hidalgo
       </div>
@@ -123,10 +136,8 @@
         La que suscribe, Secretaria Académica de la Facultad de Contaduría y Ciencias
         Administrativas de la Universidad Michoacana de San Nicolás de Hidalgo, por medio
         del presente, solicito el justificar las inasistencias del alumno
-        <b>C. Oliver Otoniel Virrueta Montero</b> matrícula <b>2211930x</b> ya que no le fue
-        posible presentarse a clases el día <b>23 de agosto del año en curso</b>, por el apoyo
-        logístico en la transmisión de la reunión de jefes de grupo de la FCCA, situación que
-        ha sido justificada ante esta Secretaría de acuerdo a los documentos que nos presenta.
+        <b>{{nombre}}</b> matrícula <b>{{matricula}}</b>, ya que no le fue posible
+        presentarse a clases <b>{{dias_texto_oficio}}</b>, {{frase_cuerpo}}
       </div>
 
       <div class="closing">
@@ -141,6 +152,15 @@
       </div>
 
       <div class="footer-code">NLGR/sav.</div>
+
+      <div class="validacion">
+        <img class="qr" src="{{qr_data_uri}}" alt="Código QR de validación">
+        <div class="qr-text">
+          Verifica la autenticidad de este documento en:<br>
+          {{url_validacion}}<br>
+          <span class="folio">Folio: {{folio}}</span>
+        </div>
+      </div>
     </div>
   </div>
 </body>
