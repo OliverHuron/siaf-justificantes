@@ -15,8 +15,7 @@ export default function StaffLogin({ destino = '/staff' }) {
     setErr(''); setCargando(true);
     try {
       const u = await loginStaff(usuario, password);
-      const esEnfermeria = u.rol === 'enfermeria';
-      nav(esEnfermeria ? '/enfermeria' : destino, { replace: true });
+      nav(u.rol === 'enfermeria' ? '/enfermeria' : destino, { replace: true });
     } catch (e2) {
       setErr(e2.message);
     } finally {
@@ -25,22 +24,25 @@ export default function StaffLogin({ destino = '/staff' }) {
   }
 
   return (
-    <div className="wrap" style={{ maxWidth: 400 }}>
-      <h1>Acceso institucional</h1>
-      <p className="sub">Personal de la Secretaría Académica / Enfermería.</p>
-      {err && <div className="aviso error">{err}</div>}
-      <form className="card" onSubmit={enviar}>
+    <div className="login-bg">
+      <form className="login-card" onSubmit={enviar}>
+        <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
+        <h1>Justificantes FCCA</h1>
+        <p className="sub">Acceso institucional</p>
+
+        {err && <div className="aviso error">{err}</div>}
+
         <label>Usuario</label>
-        <input type="text" value={usuario} required autoFocus
+        <input type="text" value={usuario} required autoFocus autoComplete="username"
           onChange={(e) => setUsuario(e.target.value.trim())} />
+
         <label>Contraseña</label>
-        <input type="password" value={password} required
+        <input type="password" value={password} required autoComplete="current-password"
           onChange={(e) => setPassword(e.target.value)} />
-        <div style={{ marginTop: 14 }}>
-          <button disabled={cargando}>{cargando ? 'Entrando…' : 'Entrar'}</button>
-        </div>
+
+        <button type="submit" disabled={cargando}>{cargando ? 'Ingresando…' : 'Ingresar'}</button>
+        <Link className="volver" to="/">← Volver al inicio</Link>
       </form>
-      <p className="hint"><Link to="/">← Inicio</Link></p>
     </div>
   );
 }

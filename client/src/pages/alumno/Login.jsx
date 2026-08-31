@@ -42,45 +42,37 @@ export default function AlumnoLogin() {
   }
 
   return (
-    <div className="wrap" style={{ maxWidth: 460 }}>
-      <h1>Acceso de alumno</h1>
-      <p className="sub">Solo correos institucionales <code>@umich.mx</code>.</p>
-
-      {err && <div className="aviso error">{err}</div>}
-      {msg && <div className="aviso info">{msg}</div>}
-
+    <div className="login-bg">
       {paso === 'correo' ? (
-        <form className="card" onSubmit={pedirCodigo}>
+        <form className="login-card" onSubmit={pedirCodigo}>
+          <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
+          <h1>Solicitud de justificante</h1>
+          <p className="sub">Ingresa con tu correo institucional <b>@umich.mx</b></p>
+          {err && <div className="aviso error">{err}</div>}
+          {msg && <div className="aviso info">{msg}</div>}
           <label>Correo institucional</label>
-          <input
-            type="email" value={email} required autoFocus
-            placeholder="matricula@umich.mx"
-            onChange={(e) => setEmail(e.target.value.trim())}
-          />
-          <div style={{ marginTop: 14 }}>
-            <button disabled={cargando}>{cargando ? 'Enviando…' : 'Enviar código'}</button>
-          </div>
+          <input type="email" value={email} required autoFocus placeholder="matricula@umich.mx"
+            onChange={(e) => setEmail(e.target.value.trim())} />
+          <button type="submit" disabled={cargando}>{cargando ? 'Enviando…' : 'Enviar código'}</button>
+          <Link className="volver" to="/">← Volver al inicio</Link>
         </form>
       ) : (
-        <form className="card" onSubmit={verificar}>
+        <form className="login-card" onSubmit={verificar}>
+          <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
+          <h1>Verifica tu código</h1>
+          <p className="sub">{email}</p>
+          {err && <div className="aviso error">{err}</div>}
+          {msg && <div className="aviso info">{msg}</div>}
           <label>Código de 6 dígitos</label>
-          <input
-            type="text" value={code} required autoFocus inputMode="numeric"
-            maxLength={6} placeholder="______"
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-          />
-          <div className="fila" style={{ marginTop: 14 }}>
-            <button disabled={cargando || code.length !== 6}>
-              {cargando ? 'Verificando…' : 'Entrar'}
-            </button>
-            <button type="button" className="plano" onClick={() => setPaso('correo')}>
-              Cambiar correo
-            </button>
-          </div>
+          <input type="text" value={code} required autoFocus inputMode="numeric" maxLength={6}
+            placeholder="______" onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+          <button type="submit" disabled={cargando || code.length !== 6}>
+            {cargando ? 'Verificando…' : 'Entrar'}
+          </button>
+          <button type="button" className="plano btn-full" style={{ marginTop: 8 }}
+            onClick={() => setPaso('correo')}>Cambiar correo</button>
         </form>
       )}
-
-      <p className="hint"><Link to="/">← Inicio</Link></p>
     </div>
   );
 }

@@ -7,7 +7,6 @@ export default function Configuracion() {
   const [tab, setTab] = useState('SMTP');
   return (
     <div>
-      <h1>Configuración</h1>
       <div className="fila" style={{ marginBottom: 16 }}>
         {TABS.map((t) => (
           <button key={t} className={t === tab ? '' : 'plano'} onClick={() => setTab(t)}>{t}</button>

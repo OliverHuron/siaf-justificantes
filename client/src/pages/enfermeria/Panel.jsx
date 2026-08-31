@@ -44,11 +44,12 @@ export default function EnfermeriaPanel() {
   if (!cat) return <div className="wrap"><p>Cargando…</p></div>;
 
   return (
-    <div className="wrap" style={{ maxWidth: 640 }}>
-      <div className="fila fila-sep">
-        <h1>Panel de Enfermería FCCA</h1>
-        <button className="plano mini" onClick={() => { logoutStaff(); nav('/'); }}>Salir</button>
+    <>
+      <div className="topbar">
+        <div className="marca"><img src="/umsnh_logo.png" alt="UMSNH" /> Panel de Enfermería FCCA</div>
+        <button onClick={() => { logoutStaff(); nav('/'); }}>Salir</button>
       </div>
+      <div className="wrap" style={{ maxWidth: 640 }}>
       <p className="sub">{staff.nombre} · genera justificantes por atención en enfermería.</p>
 
       {err && <div className="aviso error">{err}</div>}
@@ -96,6 +97,7 @@ export default function EnfermeriaPanel() {
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

@@ -24,7 +24,6 @@ export default function Bandeja() {
 
   return (
     <div>
-      <h1>Bandeja de solicitudes</h1>
       {err && <div className="aviso error">{err}</div>}
 
       <div className="card">

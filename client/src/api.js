@@ -34,7 +34,10 @@ class ApiError extends Error {
 export async function api(path, opts = {}) {
   const { tipo, body, method, headers = {}, ...rest } = opts;
   const h = { ...headers };
-  const tok = tipo ? getToken(tipo) : null;
+  // Si no se especifica `tipo`, se adjunta el token de staff si existe, si no el
+  // de alumno. Los endpoints públicos ignoran el header; los protegidos validan
+  // el tipo del token, así que un token equivocado simplemente da 401.
+  const tok = tipo ? getToken(tipo) : (getToken('staff') || getToken('alumno'));
   if (tok) h.Authorization = `Bearer ${tok}`;
 
   let payload = body;

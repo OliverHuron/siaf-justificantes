@@ -28,7 +28,6 @@ export default function Folios() {
 
   return (
     <div>
-      <h1>Folios emitidos</h1>
       {err && <div className="aviso error">{err}</div>}
       {ok && <div className="aviso exito">{ok}</div>}
       <div className="card">

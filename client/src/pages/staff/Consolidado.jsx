@@ -18,7 +18,6 @@ export default function Consolidado() {
 
   return (
     <div>
-      <h1>Consolidado por sección / semestre</h1>
       <p className="sub">Lista de justificantes aprobados para repartir a coordinadores.</p>
       {err && <div className="aviso error">{err}</div>}
       <form className="card fila" onSubmit={consultar}>
