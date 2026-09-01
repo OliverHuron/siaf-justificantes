@@ -121,6 +121,7 @@ tr.clic:hover { background: var(--navy-ghost); }
 .cal-day.sel { background: var(--navy); color: #fff; }
 .cal-day.off { color: #cbd5e1; cursor: default; }
 .cal-day.futuro { color: #cbd5e1; cursor: not-allowed; }
+.cal-day.feriado { color: #cbd5e1; cursor: not-allowed; text-decoration: line-through; }
 
 /* ---------- login ---------- */
 .login-bg {

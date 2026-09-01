@@ -75,16 +75,21 @@ async function enviar({ to, subject, text, html, attachments }) {
     auth: { user: smtp.user, pass: smtp.pass },
   });
 
-  const info = await transporter.sendMail({
-    from: smtp.from,
-    to,
-    subject,
-    text,
-    html,
-    attachments,
-  });
-  marcarEnvio();
-  return info;
+  try {
+    const info = await transporter.sendMail({ from: smtp.from, to, subject, text, html, attachments });
+    marcarEnvio();
+    return info;
+  } catch (err) {
+    // En producción el fallo se propaga. En desarrollo, para no bloquear las
+    // pruebas cuando las credenciales SMTP no son válidas, se registra en consola.
+    if (config.env === 'production') throw err;
+    console.log('\n[mailer:dev] SMTP falló (%s). Correo NO enviado, se muestra el contenido:', err.message);
+    console.log(`  para:    ${to}`);
+    console.log(`  asunto:  ${subject}`);
+    console.log(`  texto:   ${(text || '').replace(/\n/g, '\n           ')}`);
+    console.log('');
+    return { simulado: true, error: err.message };
+  }
 }
 
 /** Verifica credenciales SMTP sin enviar (para el botón "probar" de Configuración). */

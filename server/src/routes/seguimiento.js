@@ -1,10 +1,12 @@
 'use strict';
 
 const express = require('express');
+const fs = require('fs');
 const db = require('../db');
 const { ApiError } = require('../middleware/error');
 const bitacora = require('../lib/bitacora');
 const { TIPOS } = require('../lib/tipos');
+const { asegurarPdf } = require('../lib/oficio');
 
 const router = express.Router();
 
@@ -51,6 +53,22 @@ router.get('/:token', async (req, res, next) => {
       },
       mensajes: msgs.rows,
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** GET /api/seguimiento/:token/pdf  — descarga del oficio (solo si está aprobada). */
+router.get('/:token/pdf', async (req, res, next) => {
+  try {
+    const s = await cargarPorToken(req.params.token);
+    if (!s) throw new ApiError(404, 'Solicitud no encontrada');
+    if (s.estado !== 'aprobada' || !s.folio) throw new ApiError(409, 'Todavía no hay oficio emitido');
+    const { abs, folio } = await asegurarPdf(s.id);
+    if (!fs.existsSync(abs)) throw new ApiError(500, 'No se pudo preparar el PDF');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="Oficio-${folio}.pdf"`);
+    fs.createReadStream(abs).pipe(res);
   } catch (e) {
     next(e);
   }

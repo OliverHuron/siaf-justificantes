@@ -16,6 +16,7 @@ const mailer = require('../lib/mailer');
 const bitacora = require('../lib/bitacora');
 const { fechaOficio, textoDias } = require('../lib/dias');
 const { rutaAbsoluta, DIR_FOLIOS } = require('../lib/storage');
+const { asegurarPdf } = require('../lib/oficio');
 
 const router = express.Router();
 router.use(requireStaff);
@@ -494,33 +495,10 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
 /** GET /api/revision/:id/pdf  — descarga/regenera el oficio. */
 router.get('/:id/pdf', puedeLeer, async (req, res, next) => {
   try {
-    const r = await db.query(
-      `SELECT f.folio, f.token_qr, f.pdf_ruta, s.*
-         FROM folios f JOIN solicitudes s ON s.id = f.solicitud_id
-        WHERE f.solicitud_id = $1`,
-      [req.params.id]
-    );
-    const row = r.rows[0];
-    if (!row) throw new ApiError(404, 'Esta solicitud no tiene folio emitido');
-
-    let abs = row.pdf_ruta ? rutaAbsoluta(row.pdf_ruta) : path.join(DIR_FOLIOS, `${row.folio}.pdf`);
-    if (!fs.existsSync(abs)) {
-      await pdfLib.generarOficio(
-        {
-          folio: row.folio,
-          token_qr: row.token_qr,
-          fecha_oficio: row.decidido_en ? fechaOficio(new Date(row.decidido_en)) : fechaOficio(),
-          destinatario: destinatarioOficio(row.semestres, row.secciones),
-          nombre: row.nombre_declarado,
-          matricula: row.matricula_declarada,
-          dias_texto_oficio: row.dias_texto_oficio || textoDias(row.fechas || []),
-          frase_cuerpo: row.frase_cuerpo || '',
-        },
-        abs
-      );
-    }
+    const { abs, folio } = await asegurarPdf(req.params.id);
+    if (!fs.existsSync(abs)) throw new ApiError(500, 'No se pudo preparar el PDF');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="Oficio-${row.folio}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="Oficio-${folio}.pdf"`);
     fs.createReadStream(abs).pipe(res);
   } catch (e) {
     next(e);

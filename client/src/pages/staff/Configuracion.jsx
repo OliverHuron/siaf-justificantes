@@ -208,7 +208,11 @@ function Parametros() {
   return (
     <div>
       <Aviso err={err} ok={ok} />
-      <p className="hint">Editor JSON. Claves: ciclo_activo, folio, reglas, textos.</p>
+      <p className="hint">
+        Editor JSON. Claves: ciclo_activo, folio, reglas, textos, feriados.
+        <br /><code>feriados</code>: arreglo de fechas <code>["2026-09-16", "2026-11-20"]</code> que
+        no cuentan como días hábiles ni son seleccionables en el calendario.
+      </p>
       {lista.filter((c) => c.clave !== 'smtp').map((c) => (
         <ParametroItem key={c.clave} clave={c.clave} valor={c.valor} onGuardar={guardar} />
       ))}

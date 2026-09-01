@@ -14,10 +14,11 @@ function iso(y, m, d) {
  * Selector de días tipo mini-calendario. `value` = array de 'YYYY-MM-DD'.
  * No permite fechas futuras. `permitirFuturo` para relajarlo (enfermería).
  */
-export default function Calendario({ value = [], onChange, permitirFuturo = false }) {
+export default function Calendario({ value = [], onChange, permitirFuturo = false, feriados = [] }) {
   const hoy = new Date();
   const [ver, setVer] = useState({ y: hoy.getFullYear(), m: hoy.getMonth() });
   const sel = new Set(value);
+  const fer = new Set(feriados);
   const hoyIso = iso(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
 
   const primerDia = new Date(ver.y, ver.m, 1);
@@ -27,6 +28,7 @@ export default function Calendario({ value = [], onChange, permitirFuturo = fals
   function toggle(d) {
     const s = iso(ver.y, ver.m, d);
     if (!permitirFuturo && s > hoyIso) return;
+    if (fer.has(s)) return;
     const next = new Set(sel);
     if (next.has(s)) next.delete(s);
     else next.add(s);
@@ -45,10 +47,12 @@ export default function Calendario({ value = [], onChange, permitirFuturo = fals
   for (let d = 1; d <= diasEnMes; d++) {
     const s = iso(ver.y, ver.m, d);
     const futuro = !permitirFuturo && s > hoyIso;
+    const feriado = fer.has(s);
     celdas.push(
       <div
         key={d}
-        className={`cal-day${sel.has(s) ? ' sel' : ''}${futuro ? ' futuro' : ''}`}
+        title={feriado ? 'Día no hábil (feriado)' : undefined}
+        className={`cal-day${sel.has(s) ? ' sel' : ''}${futuro ? ' futuro' : ''}${feriado ? ' feriado' : ''}`}
         onClick={() => toggle(d)}
       >
         {d}

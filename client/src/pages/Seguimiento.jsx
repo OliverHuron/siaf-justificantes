@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../api.js';
+import { api, apiBlob } from '../api.js';
 
 const PILL = {
   pendiente: 'alerta', aprobada: 'ok', rechazada: 'mal',
@@ -48,9 +48,19 @@ export default function Seguimiento() {
           Días: <span className="mono">{s.fechas?.join(', ')}</span>
         </p>
         {s.folio && (
-          <p className="aviso exito" style={{ marginTop: 12 }}>
+          <div className="aviso exito" style={{ marginTop: 12 }}>
             Folio emitido: <strong>{s.folio}</strong>{s.anulado ? ' (ANULADO)' : ''}. Se notificó a tus profesores.
-          </p>
+            {!s.anulado && (
+              <div style={{ marginTop: 8 }}>
+                <button className="sec mini" onClick={async () => {
+                  try {
+                    const u = await apiBlob(`/seguimiento/${token}/pdf`);
+                    window.open(u, '_blank');
+                  } catch (e2) { setErr(e2.message); }
+                }}>Ver / descargar oficio (PDF)</button>
+              </div>
+            )}
+          </div>
         )}
         {s.estado === 'rechazada' && s.motivo_rechazo && (
           <p className="aviso error" style={{ marginTop: 12 }}>Motivo: {s.motivo_rechazo}</p>

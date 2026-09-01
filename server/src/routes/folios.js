@@ -42,6 +42,41 @@ router.get('/', requireRol('encargada', 'supervisor', 'coordinador'), async (req
   }
 });
 
+/**
+ * GET /api/folios/alertas   — posible reventa: folios con escaneos anómalos.
+ * (encargada / supervisor)
+ */
+router.get('/alertas', requireRol('encargada', 'supervisor'), async (req, res, next) => {
+  try {
+    const dias = Math.min(parseInt(req.query.dias || '90', 10) || 90, 365);
+    const r = await db.query(
+      `SELECT v.folio,
+              count(*)::int                                   AS escaneos,
+              count(*) FILTER (WHERE v.token_ok)::int          AS escaneos_ok,
+              count(*) FILTER (WHERE NOT v.token_ok)::int      AS intentos_fallidos,
+              count(DISTINCT v.ip)::int                        AS ips_distintas,
+              min(v.creado_en)                                 AS primero,
+              max(v.creado_en)                                 AS ultimo,
+              s.nombre_declarado, s.matricula_declarada,
+              f.anulado_en IS NOT NULL                         AS anulado
+         FROM verificaciones_qr v
+         LEFT JOIN folios f      ON f.folio = v.folio
+         LEFT JOIN solicitudes s ON s.id = f.solicitud_id
+        WHERE v.creado_en > now() - ($1 || ' days')::interval
+        GROUP BY v.folio, s.nombre_declarado, s.matricula_declarada, f.anulado_en
+       HAVING count(DISTINCT v.ip) >= 4
+           OR count(*) >= 12
+           OR count(*) FILTER (WHERE NOT v.token_ok) >= 5
+        ORDER BY count(DISTINCT v.ip) DESC, count(*) DESC
+        LIMIT 200`,
+      [String(dias)]
+    );
+    res.json({ dias, alertas: r.rows });
+  } catch (e) {
+    next(e);
+  }
+});
+
 /** POST /api/folios/:id/anular   { motivo }   (solo supervisor). */
 router.post('/:id/anular', requireRol('supervisor'), async (req, res, next) => {
   try {

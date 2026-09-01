@@ -18,10 +18,15 @@ async function calcular(s, reglas) {
   const fechas = (s.fechas || []).map((f) => String(f).slice(0, 10));
   const exentoVentana = s.tipo === 'caso_especial' || s.tipo === 'enfermeria_fcca';
 
-  // fuera_de_ventana: alguna fecha excede el límite de días hábiles
+  // fuera_de_ventana: alguna fecha excede el límite de días hábiles (sin feriados)
   if (!exentoVentana) {
+    let feriados = [];
+    try {
+      const r = await db.query(`SELECT valor FROM config WHERE clave = 'feriados'`);
+      if (Array.isArray(r.rows[0] && r.rows[0].valor)) feriados = r.rows[0].valor;
+    } catch (_) { /* sin config de feriados */ }
     const hoy = iso(new Date());
-    const excedidas = fechas.filter((f) => diasHabilesEntre(f, hoy) > reglas.diasLimite);
+    const excedidas = fechas.filter((f) => diasHabilesEntre(f, hoy, feriados) > reglas.diasLimite);
     if (excedidas.length) {
       banderas.fuera_de_ventana = { fechas: excedidas, limite: reglas.diasLimite };
     }

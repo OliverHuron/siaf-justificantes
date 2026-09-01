@@ -120,7 +120,7 @@ export default function NuevaSolicitud() {
           Máximo {cat.reglas.dias_limite_solicitud} días hábiles después de la falta
           (no aplica a caso especial).
         </p>
-        <Calendario value={f.fechas} onChange={(v) => set('fechas', v)} />
+        <Calendario value={f.fechas} onChange={(v) => set('fechas', v)} feriados={cat.feriados || []} />
 
         {f.tipo === 'caso_especial' && (
           <>

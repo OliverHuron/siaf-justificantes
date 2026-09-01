@@ -101,6 +101,7 @@ const CONFIG_DEFAULT = [
     form_dominio_rechazado:
       'Solo se aceptan correos institucionales que terminen en @umich.mx.',
   })],
+  ['feriados', JSON.stringify([])], // ['2026-09-16', ...] — días no hábiles adicionales
 ];
 
 async function upsertUsuarios() {

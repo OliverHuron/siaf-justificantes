@@ -16,7 +16,7 @@ router.get('/', async (req, res, next) => {
     const [sec, sem, cfg] = await Promise.all([
       db.query(`SELECT clave, etiqueta FROM secciones WHERE activo ORDER BY orden`),
       db.query(`SELECT clave, etiqueta FROM semestres WHERE activo ORDER BY orden`),
-      db.query(`SELECT clave, valor FROM config WHERE clave IN ('reglas','textos')`),
+      db.query(`SELECT clave, valor FROM config WHERE clave IN ('reglas','textos','feriados')`),
     ]);
     const conf = Object.fromEntries(cfg.rows.map((r) => [r.clave, r.valor]));
 
@@ -31,6 +31,7 @@ router.get('/', async (req, res, next) => {
         dias_habiles: conf.reglas ? conf.reglas.dias_habiles !== false : true,
       },
       textos: conf.textos || {},
+      feriados: Array.isArray(conf.feriados) ? conf.feriados : [],
       dominio_alumno: config.dominioAlumno,
     });
   } catch (e) {

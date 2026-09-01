@@ -68,7 +68,7 @@ export default function EnfermeriaPanel() {
         <label>Sección(es)</label>
         <Chips opciones={cat.secciones} value={f.secciones} onChange={(v) => set('secciones', v)} />
         <label>Día(s)</label>
-        <Calendario value={f.fechas} onChange={(v) => set('fechas', v)} />
+        <Calendario value={f.fechas} onChange={(v) => set('fechas', v)} feriados={cat.feriados || []} permitirFuturo />
         <label>Observaciones</label>
         <textarea value={f.contexto_extra} onChange={(e) => set('contexto_extra', e.target.value)} />
         <label>Constancia de enfermería</label>

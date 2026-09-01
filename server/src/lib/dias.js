@@ -21,26 +21,27 @@ function esFinDeSemana(d) {
 }
 
 /**
- * Días hábiles (lun–vie) transcurridos DESPUÉS de `desde` y hasta `hasta`
- * inclusive. Si `hasta` <= `desde`, devuelve 0. No considera días feriados
- * (lista opcional prevista para Fase 2).
+ * Días hábiles (lun–vie, sin feriados) transcurridos DESPUÉS de `desde` y hasta
+ * `hasta` inclusive. Si `hasta` <= `desde`, devuelve 0.
+ * `feriados` = iterable de fechas ISO 'YYYY-MM-DD' a excluir.
  */
-function diasHabilesEntre(desde, hasta) {
-  let a = aFecha(desde);
+function diasHabilesEntre(desde, hasta, feriados) {
+  const fer = feriados instanceof Set ? feriados : new Set(feriados || []);
+  const a = aFecha(desde);
   const b = aFecha(hasta);
   if (b <= a) return 0;
   let n = 0;
   const cur = new Date(a);
   while (cur < b) {
     cur.setUTCDate(cur.getUTCDate() + 1);
-    if (!esFinDeSemana(cur)) n += 1;
+    if (!esFinDeSemana(cur) && !fer.has(iso(cur))) n += 1;
   }
   return n;
 }
 
 /** ¿La fecha de la falta está dentro de la ventana para solicitar? */
-function dentroDeVentana(fechaFalta, limiteHabiles, hoy = iso(new Date())) {
-  return diasHabilesEntre(fechaFalta, hoy) <= limiteHabiles;
+function dentroDeVentana(fechaFalta, limiteHabiles, hoy = iso(new Date()), feriados) {
+  return diasHabilesEntre(fechaFalta, hoy, feriados) <= limiteHabiles;
 }
 
 /** Texto para el oficio a partir de una lista de fechas ISO. */

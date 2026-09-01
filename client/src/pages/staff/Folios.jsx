@@ -5,6 +5,20 @@ import { useAuth } from '../../auth.jsx';
 export default function Folios() {
   const { staff } = useAuth();
   const esSup = staff.rol === 'supervisor';
+  const [vista, setVista] = useState('folios');
+
+  return (
+    <div>
+      <div className="fila" style={{ marginBottom: 14 }}>
+        <button className={vista === 'folios' ? '' : 'plano'} onClick={() => setVista('folios')}>Folios</button>
+        <button className={vista === 'alertas' ? '' : 'plano'} onClick={() => setVista('alertas')}>Alertas de reventa</button>
+      </div>
+      {vista === 'folios' ? <ListaFolios esSup={esSup} /> : <Alertas />}
+    </div>
+  );
+}
+
+function ListaFolios({ esSup }) {
   const [q, setQ] = useState('');
   const [filas, setFilas] = useState(null);
   const [err, setErr] = useState('');
@@ -55,6 +69,49 @@ export default function Folios() {
                 </tr>
               ))}
               {filas.length === 0 && <tr><td colSpan={6} className="hint">Sin folios.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Alertas() {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    api('/folios/alertas').then(setData).catch((e) => setErr(e.message));
+  }, []);
+
+  return (
+    <div>
+      {err && <div className="aviso error">{err}</div>}
+      <p className="sub">
+        Folios con patrón de escaneo anómalo en los últimos {data?.dias || 90} días
+        (muchas IP distintas, muchos escaneos o varios intentos con token inválido).
+        No implica fraude por sí solo: revisa el contexto.
+      </p>
+      {!data ? <p>Cargando…</p> : data.alertas.length === 0 ? (
+        <div className="card">Sin alertas.</div>
+      ) : (
+        <div className="card tabla-scroll">
+          <table>
+            <thead>
+              <tr><th>Folio</th><th>Alumno</th><th>Escaneos</th><th>IP distintas</th><th>Fallidos</th><th>Último</th><th></th></tr>
+            </thead>
+            <tbody>
+              {data.alertas.map((a) => (
+                <tr key={a.folio}>
+                  <td className="mono">{a.folio}</td>
+                  <td>{a.nombre_declarado || '—'}<br /><span className="hint mono">{a.matricula_declarada || ''}</span></td>
+                  <td>{a.escaneos} <span className="hint">({a.escaneos_ok} ok)</span></td>
+                  <td>{a.ips_distintas >= 4 ? <span className="pill mal">{a.ips_distintas}</span> : a.ips_distintas}</td>
+                  <td>{a.intentos_fallidos >= 5 ? <span className="pill alerta">{a.intentos_fallidos}</span> : a.intentos_fallidos}</td>
+                  <td>{new Date(a.ultimo).toLocaleString()}</td>
+                  <td>{a.anulado && <span className="pill mal">anulado</span>}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
