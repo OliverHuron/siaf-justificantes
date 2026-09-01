@@ -96,13 +96,16 @@
     margin-top: 30px;
   }
   .validacion {
-    margin-top: 26px;
+    position: absolute;
+    bottom: 62px;
+    left: 70px;
+    right: 70px;
     display: flex;
     align-items: center;
     gap: 14px;
   }
-  .validacion .qr { width: 92px; height: 92px; flex: 0 0 auto; }
-  .validacion .qr-text { font-size: 13px; color: #333; line-height: 1.35; }
+  .validacion .qr { width: 86px; height: 86px; flex: 0 0 auto; }
+  .validacion .qr-text { font-size: 12px; color: #333; line-height: 1.3; }
   .validacion .qr-text .folio { font-weight: bold; }
   @media print {
     html, body { background: #fff; }
@@ -152,14 +155,14 @@
       </div>
 
       <div class="footer-code">NLGR/sav.</div>
+    </div>
 
-      <div class="validacion">
-        <img class="qr" src="{{qr_data_uri}}" alt="Código QR de validación">
-        <div class="qr-text">
-          Verifica la autenticidad de este documento en:<br>
-          {{url_validacion}}<br>
-          <span class="folio">Folio: {{folio}}</span>
-        </div>
+    <div class="validacion">
+      <img class="qr" src="{{qr_data_uri}}" alt="Código QR de validación">
+      <div class="qr-text">
+        Verifica la autenticidad de este documento en:<br>
+        {{url_validacion}}<br>
+        <span class="folio">Folio: {{folio}}</span>
       </div>
     </div>
   </div>

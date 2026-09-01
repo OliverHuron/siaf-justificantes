@@ -6,6 +6,7 @@ const I = {
   folios: <path d="M6 2h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zM14 2v6h6" />,
   consolidado: <path d="M4 4h16v4H4zM4 12h10v8H4zM17 12h3v8h-3z" />,
   config: <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19 12a7 7 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.4 2H9.6L9.2 4.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5.1 11a7 7 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h4.8l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1z" />,
+  cuenta: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-3.3 3.6-6 8-6s8 2.7 8 6" />,
 };
 
 function Ic({ d }) {
@@ -21,6 +22,7 @@ const TITULOS = [
   [/\/staff\/folios$/, 'Folios emitidos'],
   [/\/staff\/consolidado$/, 'Consolidado'],
   [/\/staff\/configuracion$/, 'Configuración'],
+  [/\/staff\/cuenta$/, 'Mi cuenta'],
 ];
 
 export default function StaffLayout() {
@@ -42,6 +44,7 @@ export default function StaffLayout() {
           <NavLink to="/staff/folios" className={link}><Ic d={I.folios} />Folios</NavLink>
           <NavLink to="/staff/consolidado" className={link}><Ic d={I.consolidado} />Consolidado</NavLink>
           {esSup && <NavLink to="/staff/configuracion" className={link}><Ic d={I.config} />Configuración</NavLink>}
+          <NavLink to="/staff/cuenta" className={link}><Ic d={I.cuenta} />Mi cuenta</NavLink>
         </nav>
         <div className="pie">#HumanistaPorSiempre</div>
       </aside>
@@ -59,8 +62,11 @@ export default function StaffLayout() {
       </header>
 
       <main className="shell-main">
-        {staff.must_change_password && (
-          <div className="aviso info">Tu contraseña es temporal. Cámbiala pronto (pendiente de UI).</div>
+        {staff.must_change_password && loc.pathname !== '/staff/cuenta' && (
+          <div className="aviso info">
+            Tu contraseña es temporal.{' '}
+            <NavLink to="/staff/cuenta" style={{ fontWeight: 700 }}>Cámbiala ahora</NavLink>.
+          </div>
         )}
         <Outlet />
       </main>

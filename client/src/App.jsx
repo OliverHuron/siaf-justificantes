@@ -11,6 +11,7 @@ import AvisoPrivacidad from './pages/AvisoPrivacidad.jsx';
 import StaffLogin from './pages/staff/Login.jsx';
 import StaffLayout from './pages/staff/Layout.jsx';
 import Bandeja from './pages/staff/Bandeja.jsx';
+import Cuenta from './pages/staff/Cuenta.jsx';
 import SolicitudDetalle from './pages/staff/SolicitudDetalle.jsx';
 import Folios from './pages/staff/Folios.jsx';
 import Consolidado from './pages/staff/Consolidado.jsx';
@@ -68,6 +69,7 @@ export default function App() {
         >
           <Route index element={<Navigate to="bandeja" replace />} />
           <Route path="bandeja" element={<Bandeja />} />
+          <Route path="cuenta" element={<Cuenta />} />
           <Route path="solicitud/:id" element={<SolicitudDetalle />} />
           <Route path="folios" element={<Folios />} />
           <Route path="consolidado" element={<Consolidado />} />
