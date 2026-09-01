@@ -61,25 +61,31 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 ## Qué falta (siguiente sesión)
 
 **Cierre de Fase 1**
-1. **SMTP real**: configurar y probar envío de verdad (OTP + oficio a profesores + acuse).
+1. **SMTP real** — pendiente y con problema conocido: el `.env` tiene
+   `SMTP_USER=2211930x@umich.mx` + App Password, pero Gmail responde
+   `535-5.7.8 BadCredentials`. Causa probable: cuenta de Google **Workspace** de la
+   UMSNH con App Passwords / acceso SMTP deshabilitados por el administrador.
+   Opciones: (a) cuenta `@gmail.com` personal con 2FA + App Password, (b) pedir a
+   TI de la UMSNH habilitar SMTP para una cuenta de servicio, (c) proveedor
+   transaccional (Resend/Brevo/SES). En dev, si el envío falla ya **no bloquea**:
+   el código/correo se escribe en la consola del servidor.
 2. **Primer deploy** en el servidor SIAF: pasos 2–11 de `DEPLOYMENT.md`
-   (crear DB, `.env.siaf-justificantes`, nginx, Cloudflare Tunnel, runner `siaf`), y
-   confirmar que el workflow `deploy.yml` corre y `/api/health` responde `OK`.
-   El repo ya está en GitHub, falta engancharlo al runner self-hosted.
-3. **Chromium en el server Linux**: instalar libs (`libnss3`, `libatk-1.0-0`, `libgbm1`,
-   `libasound2`, …) — nota en `DEPLOYMENT.md §1`.
-4. **UI de cambio de contraseña** del personal (hoy solo hay un aviso).
+   (crear DB, `.env.siaf-justificantes`, nginx, Cloudflare Tunnel), enganchar el
+   repo al runner self-hosted `siaf`, y confirmar `deploy.yml` + `/api/health`.
+3. **Chromium en el server Linux**: instalar libs (`libnss3`, `libatk-1.0-0`,
+   `libgbm1`, `libasound2`, …) — nota en `DEPLOYMENT.md §1`.
 
-**Fase 2** (ver `PLAN.md §13`)
-- Alertas de reventa sobre `verificaciones_qr` (mismo folio escaneado muchas veces / desde
-  IPs dispares) en un panel de supervisor.
-- PDF bajo demanda para el alumno desde `/solicitud/<token>`.
-- Lista de días feriados en Configuración (hoy la ventana de 10 días solo excluye fines de
-  semana).
-- Consolidado en PDF (hoy es tabla imprimible).
+**Hecho en la sesión del 2026-08-31 (2ª parte)** — commits `1e5c414`, `430d360`:
+- ✅ UI de cambio de contraseña del personal (`/staff/cuenta`).
+- ✅ Ajuste del recuadro QR en `oficio.html` (anclado al pie, sin encimarse).
+- ✅ Días feriados: clave config `feriados`, excluidos del cálculo de días
+  hábiles y tachados/no seleccionables en el mini-calendario.
+- ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
+- ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
+
+**Fase 2 restante** (ver `PLAN.md §13`)
+- Consolidado en PDF (hoy es tabla imprimible con `window.print()`).
 - TOTP (segundo factor) para `encargada` y `supervisor`.
-- Afinar posición del recuadro QR en `templates/oficio.html` (queda un poco encima de la
-  franja inferior del membrete).
 
 **Fase 3**
 - Sustituir el CRUD manual de `horarios` por la BD/exportación institucional.
