@@ -526,12 +526,20 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 .dc-day.pedido { color: var(--texto); cursor: pointer; border: 1px dashed var(--navy-2); }
 .dc-day.aprob { background: var(--navy); color: #fff; border: 1px solid var(--navy); cursor: pointer; }
 
-/* badge de nota con color en la bandeja */
-.nota-badge {
-  display: inline-block; padding: 3px 9px; border-radius: 6px;
-  font-size: .74rem; font-weight: 700; border: 1px solid rgba(0, 0, 0, .12);
-  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  vertical-align: bottom;
+/* nota interna en la bandeja: botón-icono + popover */
+.nota-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px; padding: 0;
+  border: 1px solid var(--borde); border-radius: 7px; background: #fff;
+  color: var(--navy); cursor: pointer;
+}
+.nota-btn:hover { background: var(--navy-ghost); border-color: var(--navy-2); }
+.nota-pop {
+  position: fixed; z-index: 60; min-width: 170px; max-width: 260px;
+  background: #fff; border: 1px solid var(--borde); border-radius: 8px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .18);
+  padding: 9px 11px; font-size: .82rem; font-weight: 400; line-height: 1.4;
+  color: var(--texto); white-space: normal; text-align: left;
 }
 
 /* ---------- formulario de solicitud (dos columnas + resumen fijo) ---------- */

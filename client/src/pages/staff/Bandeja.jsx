@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, apiBlob } from '../../api.js';
 
@@ -39,6 +39,47 @@ const ICONO = {
     </svg>
   ),
 };
+
+/** Botón-icono que despliega la nota interna en un popover. */
+function NotaBtn({ texto }) {
+  const [pos, setPos] = useState(null);
+  const btnRef = useRef(null);
+  function toggle(e) {
+    e.stopPropagation();
+    if (pos) { setPos(null); return; }
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 6, left: Math.max(8, r.right - 260) });
+  }
+  useEffect(() => {
+    if (!pos) return undefined;
+    const close = () => setPos(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    document.addEventListener('mousedown', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      document.removeEventListener('mousedown', close);
+    };
+  }, [pos]);
+  return (
+    <>
+      <button ref={btnRef} type="button" className="nota-btn" title="Ver nota interna" onClick={toggle}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 4h16v11l-5 5H4z" />
+          <path d="M15 20v-5h5M8 9h8M8 13h5" />
+        </svg>
+      </button>
+      {pos && (
+        <div className="nota-pop" style={{ top: pos.top, left: pos.left }}
+          onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
+          {texto}
+        </div>
+      )}
+    </>
+  );
+}
 
 /** Botón-icono que abre un adjunto (receta/ticket) en pestaña nueva con el token de staff. */
 function BotonAdjunto({ solicitudId, adjId, clase, titulo }) {
@@ -155,12 +196,7 @@ export default function Bandeja() {
                       {Object.keys(s.banderas || {}).map((b) => (
                         <span key={b} className="pill mal" style={{ marginRight: 4 }}>{b}</span>
                       ))}
-                      {s.recordatorio && (
-                        <span className="nota-badge" title="Nota interna"
-                          style={s.color ? { background: s.color, borderColor: s.color } : undefined}>
-                          {s.recordatorio}
-                        </span>
-                      )}
+                      {s.recordatorio && <NotaBtn texto={s.recordatorio} />}
                       {s.requiere_ventanilla && !s.ventanilla_recibido && <span className="pill azul">ventanilla</span>}
                     </td>
                   </tr>
