@@ -19,6 +19,11 @@ const fFecha = (s) => {
   return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : (s || '—');
 };
 const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
+const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const fDiaCorto = (iso) => {
+  const [, m, d] = String(iso || '').slice(0, 10).split('-');
+  return m && d ? `${Number(d)} ${MES_CORTO[Number(m) - 1] || ''}` : iso;
+};
 
 // Portal público para verificar recetas / incapacidades de instituciones públicas.
 const URL_RECETA_PUBLICA = 'https://serviciosdigitales.imss.gob.mx/portal-ciudadano/incapacidades';
@@ -247,18 +252,34 @@ export default function ExpedienteModal() {
                 </div>
 
                 <div className="exp-block">
-                  <h3 style={{ marginTop: 0 }}>Gestión y selección de días aprobados</h3>
-                  <p className="hint" style={{ marginTop: 0 }}>
+                  <span className="pill-head">Días aprobados</span>
+                  <p className="hint" style={{ marginTop: 12 }}>
                     Que el alumno pida un día o rango no obliga a aprobarlo: marca solo los días que proceden.
                   </p>
                   <DiasAprobados pedidos={(s.fechas || []).map((x) => String(x).slice(0, 10))}
                     value={diasAprob} onChange={setDiasAprob} />
-                  <div className="dias-aprob-card" style={{ marginTop: 12 }}>
-                    <div className="exp-mini-label">Días aprobados por administrador</div>
-                    <div className="n">{diasAprob.length} día(s)</div>
-                    {diasAprob.length > 0 && (
-                      <div className="hint mono">{diasAprob.map(fFecha).join(', ')}</div>
-                    )}
+
+                  <div className="al-rows" style={{ marginTop: 12 }}>
+                    <div className="al-row">
+                      <span className="al-k">Pedidos</span>
+                      <span className="al-v">{(s.fechas || []).length} día(s)</span>
+                    </div>
+                    <div className="al-row">
+                      <span className="al-k">Aprobados</span>
+                      <span className="al-v"><b>{diasAprob.length}</b> día(s)</span>
+                    </div>
+                    <div className="al-row">
+                      <span className="al-k">Fechas</span>
+                      <span className="al-v">
+                        {diasAprob.length === 0 ? (
+                          <span className="hint">Ninguna seleccionada</span>
+                        ) : (
+                          <span className="dia-chips">
+                            {diasAprob.map((x) => <span key={x} className="dia-chip">{fDiaCorto(x)}</span>)}
+                          </span>
+                        )}
+                      </span>
+                    </div>
                   </div>
                 </div>
 

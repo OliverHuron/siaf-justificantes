@@ -463,11 +463,11 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   .al-k { flex-basis: auto; }
 }
 
-.dias-aprob-card {
-  border: 1px solid var(--navy); border-left: 4px solid var(--navy);
-  border-radius: 10px; padding: 10px 14px; background: var(--navy-ghost);
+.dia-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.dia-chip {
+  background: var(--navy); color: #fff; font-weight: 700;
+  font-size: .74rem; padding: 3px 9px; border-radius: 6px; white-space: nowrap;
 }
-.dias-aprob-card .n { font-size: 1.15rem; font-weight: 800; color: var(--navy); }
 
 .dictamen-btns { display: flex; gap: 10px; flex-wrap: wrap; }
 .dictamen-btns button { flex: 1 1 120px; padding: 12px 10px; border: none; border-radius: 10px; font-weight: 700; color: #fff; cursor: pointer; }
