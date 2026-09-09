@@ -125,7 +125,7 @@ export default function NuevaSolicitud() {
     e.preventDefault();
     setErr('');
     const fallo = (m) => { setErr(m); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-    if (!f.rango.inicio || !f.rango.fin) { fallo('Selecciona el rango de fechas (inicio y fin).'); return; }
+    if (!f.rango.inicio || !f.rango.fin) { fallo('Selecciona al menos un día a justificar.'); return; }
     if (!f.nombre.trim()) { fallo('Escribe tu nombre completo.'); return; }
     if (!f.tipo) { fallo('Selecciona el tipo de justificante.'); return; }
     if (esMedico && !f.origen) { fallo('Selecciona el origen de atención.'); return; }
@@ -240,7 +240,7 @@ export default function NuevaSolicitud() {
 
             {!fechasListas ? (
               <section className="paso mudo">
-                <p>Elige el rango de fechas para continuar con tus datos y el motivo.</p>
+                <p>Elige al menos un día para continuar con tus datos y el motivo.</p>
               </section>
             ) : (
               <>
@@ -346,7 +346,7 @@ export default function NuevaSolicitud() {
                   </div>
                 </>
               ) : (
-                <div className="res-v mudo">Elige el rango de fechas</div>
+                <div className="res-v mudo">Elige al menos un día</div>
               )}
             </div>
 

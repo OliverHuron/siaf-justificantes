@@ -83,6 +83,14 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 - ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
 - ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
 
+**Hecho en la sesión del 2026-09-09 (4ª parte)** — calendario de día o rango:
+- ✅ `RangoCalendario`: el rango es **opcional**. 1er clic = ese día (`inicio == fin`),
+  y con eso ya se habilita el resto del formulario (Datos, Motivo, Resumen, Enviar).
+  2º clic en el mismo día lo **deselecciona**; en otro día forma el rango ordenado.
+  Con un rango, clic en un extremo lo quita (colapsa al otro día).
+- ✅ Corregido bug cosmético de precedencia: `:hover` ya no pisa el resaltado de
+  `.ini/.fin/.rango` (el día elegido se veía gris mientras el cursor estaba encima).
+
 **Hecho en la sesión del 2026-09-09 (3ª parte)** — rediseño del formulario del alumno:
 - ✅ **Topbar** propio (logo FCCA + título + correo + Salir), sticky.
 - ✅ **Dos columnas**: izquierda los pasos numerados (1 Fechas · 2 Datos · 3 Motivo,

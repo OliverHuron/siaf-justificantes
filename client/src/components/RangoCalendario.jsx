@@ -13,7 +13,12 @@ const dowIso = (y, m, d) => {
 };
 
 /**
- * Calendario de RANGO: primer clic = inicio, segundo clic = fin.
+ * Calendario de día o RANGO.
+ * - 1er clic: selecciona ese día  → { inicio: D, fin: D }.
+ * - 2º clic en el mismo día: lo deselecciona → { inicio: null, fin: null }.
+ * - 2º clic en otro día: forma el rango ordenado → { inicio: min, fin: max }.
+ * - con un rango, clic en un extremo lo quita (colapsa al otro día);
+ *   clic en cualquier otro día reinicia a un día único.
  * `value` = { inicio: 'YYYY-MM-DD'|null, fin: 'YYYY-MM-DD'|null }.
  * No permite fechas futuras. `feriados` = ['YYYY-MM-DD', ...] (no seleccionables).
  * `diasSemana` = nº de día ISO hábiles (1 lun … 7 dom); los demás no se pueden
@@ -45,9 +50,22 @@ export default function RangoCalendario({
 
   function clic(s, seleccionable) {
     if (!seleccionable) return;
-    if (!inicio || (inicio && fin)) { onChange({ inicio: s, fin: null }); return; }
-    if (s < inicio) { onChange({ inicio: s, fin: null }); return; }
-    onChange({ inicio, fin: s });
+    const A = inicio;
+    const B = fin || inicio; // un día suelto = inicio === fin
+
+    if (!A) { onChange({ inicio: s, fin: s }); return; }
+
+    if (A === B) {
+      // hay un solo día: mismo día → deselecciona; otro día → rango ordenado
+      if (s === A) { onChange({ inicio: null, fin: null }); return; }
+      onChange(s < A ? { inicio: s, fin: A } : { inicio: A, fin: s });
+      return;
+    }
+
+    // hay un rango A..B: clic en un extremo lo quita; en otro día, reinicia
+    if (s === A) { onChange({ inicio: B, fin: B }); return; }
+    if (s === B) { onChange({ inicio: A, fin: A }); return; }
+    onChange({ inicio: s, fin: s });
   }
 
   const finEfectivo = fin || inicio;
@@ -89,7 +107,7 @@ export default function RangoCalendario({
         {celdas}
       </div>
       <p className="hint" style={{ textAlign: 'center', marginTop: 8 }}>
-        Selecciona el día de inicio y luego el día de fin.
+        Toca un día. Toca otro para hacer un rango; toca el mismo para quitarlo.
       </p>
     </div>
   );

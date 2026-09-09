@@ -481,7 +481,7 @@ tr.clic:hover { background: var(--navy-ghost); }
   text-align: center; padding: 7px 0; border-radius: 7px; cursor: pointer; font-size: .84rem;
   -webkit-user-select: none; user-select: none;
 }
-.rc-day:hover:not(.no):not(.off) { background: var(--gris-suave); }
+.rc-day:hover:not(.no):not(.off):not(.ini):not(.fin):not(.rango) { background: var(--gris-suave); }
 .rc-day.off { visibility: hidden; }
 .rc-day.no { color: #cbd5e1; cursor: not-allowed; }
 .rc-day.feriado { text-decoration: line-through; }
