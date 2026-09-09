@@ -73,10 +73,17 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
   túnel `119ed31c…` (backup `config.yml.bak.<ts>`).
 
 **Pendiente / avisos:**
-1. **SMTP sin configurar** — `/var/www/.env.siaf-justificantes` tiene placeholders
-   (`SMTP_USER=CAMBIAME@gmail.com`). Sin esto **el alumno no recibe el OTP y no puede
-   entrar**; el personal (password) sí. Arreglo: editar ese archivo con cuenta Gmail +
-   App Password y `pm2 restart siaf-justificantes --update-env`.
+1. **SMTP: FUNCIONANDO** (2026-09-09). Cuenta `2211930x@umich.mx` + App Password
+   (los 3 espacios del formato `xxxx xxxx xxxx xxxx` no molestan a Gmail). El OTP del
+   alumno se envía OK (probado a `2211930x@umich.mx`, HTTP 200).
+   - Causa del fallo inicial: `npm run seed` dejó una fila `config.smtp` en la BD con
+     `user=CAMBIAME@gmail.com`, y `resolverSmtp()` da prioridad a la BD sobre el `.env`.
+     Se corrigió con `UPDATE config ... WHERE clave='smtp'` a la cuenta real.
+   - **`pm2 restart` a secas NO recarga el `.env`** (pm2 conserva el env que capturó);
+     hay que `pm2 delete siaf-justificantes && pm2 start src/index.js --name … && pm2 save`
+     (o editar por Configuración → SMTP, que escribe la fila `config.smtp`).
+   - Los valores reales de SMTP ya están en el maestro `/var/www/.env.siaf-justificantes`
+     y en la fila `config.smtp`, así que los `git push` no lo revierten.
 2. **`/run` del servidor estaba al 99%** (containerd `io.containerd.runtime.v2.task` = 374M).
    Se remontó `/run` a 768M para poder instalar el servicio del runner; **se revierte a
    382M en reboot**. La app sobrevive un reboot, pero instalar/modificar unidades systemd
