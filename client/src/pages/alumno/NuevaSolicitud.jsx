@@ -160,14 +160,11 @@ export default function NuevaSolicitud() {
     return (
       <div className="wrap" style={{ maxWidth: 560 }}>
         <h1>Solicitud enviada</h1>
-        <div className="aviso exito">Tu solicitud quedó registrada. Recibirás un acuse por correo.</div>
-        <div className="card">
-          <p><Link to={`/solicitud/${hecho.token_seguimiento}`}>Ver estado de mi solicitud</Link></p>
-          {hecho.banderas?.length > 0 && (
-            <p className="hint">La Secretaría revisará algunos puntos: {hecho.banderas.join(', ')}.</p>
-          )}
+        <div className="aviso exito">
+          Tu solicitud quedó registrada. Recibirás un acuse en tu correo institucional y,
+          si la Secretaría necesita algo más, te contactará por ese medio.
         </div>
-        <Link className="btn sec" to="/mis-solicitudes">Mis solicitudes</Link>
+        <Link className="btn sec" to="/">Volver al inicio</Link>
       </div>
     );
   }

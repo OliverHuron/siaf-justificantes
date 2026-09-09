@@ -155,7 +155,12 @@ export default function Bandeja() {
                       {Object.keys(s.banderas || {}).map((b) => (
                         <span key={b} className="pill mal" style={{ marginRight: 4 }}>{b}</span>
                       ))}
-                      {s.recordatorio && <span className="pill alerta">nota</span>}
+                      {s.recordatorio && (
+                        <span className="nota-badge" title="Nota interna"
+                          style={s.color ? { background: s.color, borderColor: s.color } : undefined}>
+                          {s.recordatorio}
+                        </span>
+                      )}
                       {s.requiere_ventanilla && !s.ventanilla_recibido && <span className="pill azul">ventanilla</span>}
                     </td>
                   </tr>

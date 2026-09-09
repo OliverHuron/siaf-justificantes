@@ -83,6 +83,29 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 - ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
 - ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
 
+**Hecho en la sesión del 2026-09-09 (6ª parte)** — expediente del personal como modal:
+- ✅ `SolicitudDetalle` (página) → **`ExpedienteModal`** sobre la bandeja. La ruta
+  `/staff/solicitud/:id` renderiza `<Bandeja/>` + el modal; cerrar → `/staff/bandeja`.
+  Dos columnas: izquierda comprobantes (pestañas por adjunto + caja "Validación oficial"
+  con enlace externo para receta IMSS) e historial de la matrícula (plegable); derecha
+  detalle del alumno con tarjetas estilo `/solicitar`, periodo pedido, motivo,
+  **calendario de días aprobados** y dictamen (Aprobar / Rechazar / Requerir
+  presencialmente) + "Vista previa del oficio" + nota/color (plegable).
+- ✅ **Días aprobados por la encargada** (`fechas_aprobadas date[]`, migración 005):
+  `POST /revision/:id/aprobar` acepta `fechas_aprobadas` (subconjunto de lo pedido);
+  el oficio/folio se emiten con esos días. `GET /revision/:id/oficio-preview` renderiza
+  el oficio en HTML para previsualizar antes de aprobar.
+- ✅ `/aprobar` ya **no se bloquea** si no hay profesores resueltos (se aprueba sin
+  notificar). Se quitó de la UI "Profesores a notificar" (vendrá del script + BD propia).
+- ✅ Sin contacto alumno↔Secretaría: se quitó el hilo de mensajes del expediente y
+  **el alumno ya no puede ver el estado** — eliminadas las rutas `/mis-solicitudes` y
+  `/solicitud/:token` y sus enlaces (Inicio, acuse de envío, panel de enfermería).
+- ✅ Triage → **"Nota interna y color"** (sin `estado_triage` en la UI, solo color +
+  recordatorio). En la bandeja el recordatorio se muestra en un badge con ese color.
+- Pendiente menor: en Configuración → Plantillas, etiquetar plantillas por propósito
+  (aprobación / rechazo / ventanilla); hoy se distinguen por ámbito (`cuerpo_oficio` vs
+  `correo`) y todas las de correo salen en los desplegables de rechazo y ventanilla.
+
 **Hecho en la sesión del 2026-09-09 (5ª parte)** — bandeja del personal:
 - ✅ Columnas: Fecha y hora · Dirección de correo electrónico · Nombre completo ·
   Matrícula · Sección · Semestre (nº ordinal) · Día(s) a justificar (dd/mm/aaaa) ·

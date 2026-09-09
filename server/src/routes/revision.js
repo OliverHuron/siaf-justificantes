@@ -131,7 +131,7 @@ router.get('/:id', puedeLeer, async (req, res, next) => {
     const s = await cargarSolicitud(req.params.id);
     if (!s) throw new ApiError(404, 'Solicitud no encontrada');
 
-    const [adj, hilo, hist, profFrozen] = await Promise.all([
+    const [adj, hilo, hist, profFrozen, folioRow] = await Promise.all([
       db.query(`SELECT id, tipo, nombre_original, mime, tamano, subido_en FROM adjuntos WHERE solicitud_id = $1 ORDER BY id`, [s.id]),
       db.query(`SELECT autor, autor_usuario, cuerpo, creado_en FROM mensajes WHERE solicitud_id = $1 ORDER BY creado_en`, [s.id]),
       db.query(
@@ -142,6 +142,7 @@ router.get('/:id', puedeLeer, async (req, res, next) => {
         [s.matricula_declarada, s.id]
       ),
       db.query(`SELECT materia, profesor_nombre, profesor_correo, incluir, origen, enviado_en FROM solicitud_profesores WHERE solicitud_id = $1 ORDER BY materia`, [s.id]),
+      db.query(`SELECT folio FROM folios WHERE solicitud_id = $1`, [s.id]),
     ]);
 
     let profesores = profFrozen.rows;
@@ -153,10 +154,11 @@ router.get('/:id', puedeLeer, async (req, res, next) => {
     res.json({
       solicitud: {
         ...s,
+        folio: (folioRow.rows[0] && folioRow.rows[0].folio) || null,
         tipo_etiqueta: (TIPOS[s.tipo] || {}).etiqueta || s.tipo,
         tipo_reglas: TIPOS[s.tipo] || null,
       },
-      adjuntos: adj.rows.map((a) => ({ ...a, url: `/api/revision/${s.id}/adjuntos/${a.id}` })),
+      adjuntos: adj.rows.map((a) => ({ ...a, url: `/revision/${s.id}/adjuntos/${a.id}` })),
       hilo: hilo.rows,
       historial_matricula: hist.rows,
       profesores,
@@ -180,6 +182,43 @@ router.get('/:id/adjuntos/:adjId', puedeLeer, async (req, res, next) => {
     res.setHeader('Content-Type', a.mime);
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(a.nombre_original)}"`);
     fs.createReadStream(abs).pipe(res);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * GET /api/revision/:id/oficio-preview?dias=ISO,ISO&plantilla_cuerpo_id=&frase_cuerpo=
+ * Renderiza el oficio (HTML, sin QR) para previsualizarlo antes de aprobar.
+ */
+router.get('/:id/oficio-preview', puedeLeer, async (req, res, next) => {
+  try {
+    const s = await cargarSolicitud(req.params.id);
+    if (!s) throw new ApiError(404, 'Solicitud no encontrada');
+    const pedidas = (s.fechas || []).map((x) => String(x).slice(0, 10));
+    const dias = String(req.query.dias || '')
+      .split(',').map((x) => x.trim()).filter((x) => pedidas.includes(x));
+    const fechasAprob = dias.length ? [...new Set(dias)].sort() : pedidas;
+    const diasTxt = textoDias(fechasAprob);
+    const frase = await plantillas.cuerpoOficio({
+      plantillaId: req.query.plantilla_cuerpo_id || null,
+      libre: req.query.frase_cuerpo || '',
+      vars: varsPlantilla(s, { dias: diasTxt }),
+    });
+    const tpl = fs.readFileSync(path.join(__dirname, '..', '..', 'templates', 'oficio.html'), 'utf8');
+    const html = plantillas.render(tpl, {
+      fecha_oficio: fechaOficio(),
+      folio: '(se asigna al aprobar)',
+      destinatario: destinatarioOficio(s.semestres, s.secciones),
+      nombre: s.nombre_declarado,
+      matricula: s.matricula_declarada,
+      dias_texto_oficio: diasTxt,
+      frase_cuerpo: frase,
+      qr_data_uri: '',
+      url_validacion: '',
+    });
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
   } catch (e) {
     next(e);
   }
@@ -380,7 +419,23 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
 
     const { plantilla_cuerpo_id, frase_cuerpo, dias_texto_oficio, fechas_verificadas_receta } = req.body || {};
 
-    // Lista de destinatarios: los congelados incluidos, o resolver ahora.
+    // Días aprobados por la encargada: subconjunto de los que pidió el alumno.
+    // Si no se envían, se aprueban todos.
+    const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
+    const pedidas = (s.fechas || []).map((x) => String(x).slice(0, 10));
+    let fechasAprob = pedidas;
+    if (req.body && req.body.fechas_aprobadas !== undefined) {
+      const arr = Array.isArray(req.body.fechas_aprobadas) ? req.body.fechas_aprobadas : [];
+      fechasAprob = [...new Set(arr.map((x) => String(x).slice(0, 10)))]
+        .filter((x) => FECHA_RE.test(x) && pedidas.includes(x))
+        .sort();
+      if (!fechasAprob.length) {
+        throw new ApiError(400, 'Selecciona al menos un día a aprobar (de los que pidió el alumno)');
+      }
+    }
+
+    // Lista de destinatarios: los congelados incluidos, o resolver por horario.
+    // Si no se resuelve ninguno, la solicitud se aprueba igual (sin notificar).
     let dest = (await db.query(
       `SELECT id, materia, profesor_nombre, profesor_correo FROM solicitud_profesores
         WHERE solicitud_id = $1 AND incluir = true`,
@@ -389,13 +444,13 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
     let congelarAuto = false;
     if (!dest.length) {
       const yaHay = await db.query(`SELECT 1 FROM solicitud_profesores WHERE solicitud_id = $1 LIMIT 1`, [s.id]);
-      if (yaHay.rowCount) throw new ApiError(409, 'No hay profesores marcados para notificar');
-      dest = await resolverProfesores(s);
-      congelarAuto = true;
-      if (!dest.length) throw new ApiError(409, 'No se resolvió ningún profesor (revisa horarios). Agrega destinatarios manualmente.');
+      if (!yaHay.rowCount) {
+        dest = await resolverProfesores(s);
+        congelarAuto = dest.length > 0;
+      }
     }
 
-    const diasTxt = (dias_texto_oficio && dias_texto_oficio.trim()) || s.dias_texto_oficio || textoDias(s.fechas || []);
+    const diasTxt = (dias_texto_oficio && dias_texto_oficio.trim()) || textoDias(fechasAprob);
     const frase = await plantillas.cuerpoOficio({
       plantillaId: plantilla_cuerpo_id || null,
       libre: frase_cuerpo || '',
@@ -425,9 +480,10 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
       await client.query(
         `UPDATE solicitudes SET estado='aprobada', estado_triage='atendida', decidido_en=now(),
            decidido_por=$2, dias_texto_oficio=$3, frase_cuerpo=$4, plantilla_cuerpo_id=$5,
-           fechas_verificadas_receta=$6
+           fechas_verificadas_receta=$6, fechas_aprobadas=$7::date[]
          WHERE id=$1`,
-        [s.id, req.usuario.sub, diasTxt, frase, plantilla_cuerpo_id || null, !!fechas_verificadas_receta]
+        [s.id, req.usuario.sub, diasTxt, frase, plantilla_cuerpo_id || null,
+         !!fechas_verificadas_receta, fechasAprob]
       );
       await bitacora.registrar({
         actorTipo: 'staff', actorRef: req.usuario.usuario, accion: 'solicitud_aprobada',

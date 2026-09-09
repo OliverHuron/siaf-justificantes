@@ -367,6 +367,116 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 .login2-volver { text-align: center; font-size: 13px; color: var(--lg-500); }
 .login2-volver:hover { color: var(--lb-primary); }
 
+/* ---------- Expediente de solicitud (modal del personal) ---------- */
+.pill-head {
+  display: inline-block; background: var(--navy); color: #fff;
+  font-weight: 800; font-size: .78rem; letter-spacing: .05em; text-transform: uppercase;
+  padding: 8px 16px; border-radius: 9px;
+}
+.sec-link { font-size: .82rem; color: var(--azul); }
+
+.modal-ovl {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(15, 23, 42, .5);
+  display: flex; align-items: flex-start; justify-content: center; padding: 24px 16px;
+  overflow-y: auto;
+}
+.modal-exp {
+  background: var(--fondo); width: 100%; max-width: 1100px;
+  border-radius: 14px; overflow: hidden; box-shadow: 0 30px 80px rgba(0, 0, 0, .35);
+  display: flex; flex-direction: column; max-height: calc(100vh - 48px);
+}
+.modal-exp-head {
+  background: var(--navy); color: #fff; padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.modal-exp-head h2 { margin: 0; font-size: 1rem; font-weight: 700; }
+.modal-exp-x {
+  background: none; border: none; color: #fff; font-size: 1.5rem; line-height: 1;
+  cursor: pointer; padding: 0 6px; opacity: .85;
+}
+.modal-exp-x:hover { opacity: 1; background: none; }
+.modal-exp-body { padding: 18px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.modal-exp-body > .exp-col:first-child { position: sticky; top: 0; }
+@media (max-width: 860px) {
+  .modal-exp-body { grid-template-columns: 1fr; }
+  .modal-exp-body > .exp-col:first-child { position: static; }
+}
+.modal-exp-foot {
+  border-top: 1px solid var(--borde); background: #fff;
+  padding: 12px 20px; display: flex; justify-content: flex-end;
+}
+.exp-col { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.exp-block { background: #fff; border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px; }
+.exp-block > h3 { margin: 12px 0 6px; font-size: .9rem; }
+.exp-block > h3:first-child { margin-top: 4px; }
+
+.exp-valida {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--navy-ghost); border: 1px solid #c7d2fe; border-radius: 9px;
+  padding: 10px 12px; margin-bottom: 10px; font-size: .85rem; font-weight: 600; color: var(--navy);
+}
+.exp-valida a {
+  margin-left: auto; background: var(--azul); color: #fff; text-decoration: none;
+  padding: 7px 12px; border-radius: 8px; font-size: .82rem; font-weight: 700;
+}
+.exp-adj-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.exp-adj-tab {
+  padding: 6px 12px; border: 1px solid var(--borde); border-radius: 8px 8px 0 0;
+  background: #fff; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--gris);
+}
+.exp-adj-tab.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+.exp-cards2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.exp-cards2 .exp-card { background: #f8fafc; }
+.exp-mini-label { font-size: .7rem; font-weight: 800; letter-spacing: .04em; color: var(--navy); text-transform: uppercase; }
+
+.dias-aprob-card {
+  border: 1px solid var(--navy); border-left: 4px solid var(--navy);
+  border-radius: 10px; padding: 10px 14px; background: var(--navy-ghost);
+}
+.dias-aprob-card .n { font-size: 1.15rem; font-weight: 800; color: var(--navy); }
+
+.dictamen-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.dictamen-btns button { flex: 1 1 120px; padding: 12px 10px; border: none; border-radius: 10px; font-weight: 700; color: #fff; cursor: pointer; }
+.btn-aprobar { background: #16a34a; }
+.btn-aprobar:hover:not(:disabled) { background: #15803d; }
+.btn-rechazar { background: #dc2626; }
+.btn-rechazar:hover:not(:disabled) { background: #b91c1c; }
+.btn-ventanilla { background: #ea580c; }
+.btn-ventanilla:hover:not(:disabled) { background: #c2410c; }
+.dictamen-btns button:disabled { opacity: .5; cursor: not-allowed; }
+
+.exp-acc { border: 1px solid var(--borde); border-radius: 10px; overflow: hidden; }
+.exp-acc + .exp-acc { margin-top: 8px; }
+.exp-acc > summary {
+  cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: .88rem;
+  background: #f8fafc; list-style: none;
+}
+.exp-acc > summary::-webkit-details-marker { display: none; }
+.exp-acc > summary::before { content: '▸ '; color: var(--gris); }
+.exp-acc[open] > summary::before { content: '▾ '; }
+.exp-acc-body { padding: 12px 14px; border-top: 1px solid var(--borde); }
+
+/* calendario multi-día para aprobar */
+.dc { border: 1px solid var(--borde); border-radius: 10px; padding: 12px; background: #fff; }
+.dc-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 8px; }
+.dc-head button { padding: 2px 10px; background: #fff; color: var(--navy); border: 1px solid var(--borde); border-radius: 6px; cursor: pointer; }
+.dc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.dc-dow { text-align: center; font-size: .68rem; color: var(--gris); font-weight: 700; padding: 2px 0; }
+.dc-day { text-align: center; padding: 7px 0; border-radius: 7px; font-size: .84rem; color: #cbd5e1; }
+.dc-day.off { visibility: hidden; }
+.dc-day.pedido { color: var(--texto); cursor: pointer; border: 1px dashed var(--navy-2); }
+.dc-day.aprob { background: var(--navy); color: #fff; border: 1px solid var(--navy); cursor: pointer; }
+
+/* badge de nota con color en la bandeja */
+.nota-badge {
+  display: inline-block; padding: 3px 9px; border-radius: 6px;
+  font-size: .74rem; font-weight: 700; border: 1px solid rgba(0, 0, 0, .12);
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  vertical-align: bottom;
+}
+
 /* ---------- formulario de solicitud (dos columnas + resumen fijo) ---------- */
 .just-topbar { position: sticky; top: 0; z-index: 30; background: #fff; border-bottom: 1px solid var(--borde); }
 .just-topbar-in {

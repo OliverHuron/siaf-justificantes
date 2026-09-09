@@ -34,7 +34,7 @@ export default function EnfermeriaPanel() {
       Object.entries(f).forEach(([k, v]) => fd.append(k, Array.isArray(v) ? JSON.stringify(v) : v));
       fd.append('constancia', archivo);
       const r = await api('/enfermeria/solicitudes', { tipo: 'staff', body: fd });
-      setOk(`Ficha registrada. Seguimiento: ${window.location.origin}/solicitud/${r.token_seguimiento}`);
+      setOk(`Ficha registrada (folio de seguimiento ${r.token_seguimiento || r.id}).`);
       setF({ nombre: '', matricula: '', email_alumno: '', semestres: [], secciones: [], fechas: [], contexto_extra: '' });
       setArchivo(null);
       cargarHist();

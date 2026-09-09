@@ -4,24 +4,17 @@ import { AuthProvider, useAuth } from './auth.jsx';
 import Inicio from './pages/Inicio.jsx';
 import AlumnoLogin from './pages/alumno/Login.jsx';
 import NuevaSolicitud from './pages/alumno/NuevaSolicitud.jsx';
-import MisSolicitudes from './pages/alumno/MisSolicitudes.jsx';
-import Seguimiento from './pages/Seguimiento.jsx';
 import Validar from './pages/Validar.jsx';
 import AvisoPrivacidad from './pages/AvisoPrivacidad.jsx';
 import StaffLogin from './pages/staff/Login.jsx';
 import StaffLayout from './pages/staff/Layout.jsx';
 import Bandeja from './pages/staff/Bandeja.jsx';
 import Cuenta from './pages/staff/Cuenta.jsx';
-import SolicitudDetalle from './pages/staff/SolicitudDetalle.jsx';
+import ExpedienteModal from './pages/staff/ExpedienteModal.jsx';
 import Folios from './pages/staff/Folios.jsx';
 import Consolidado from './pages/staff/Consolidado.jsx';
 import Configuracion from './pages/staff/Configuracion.jsx';
 import EnfermeriaPanel from './pages/enfermeria/Panel.jsx';
-
-function RequiereAlumno({ children }) {
-  const { alumno } = useAuth();
-  return alumno ? children : <Navigate to="/solicitar/acceso" replace />;
-}
 
 /** En /solicitar/acceso: pide el código si no hay sesión; ya autenticado, muestra el formulario. */
 function SolicitarAcceso() {
@@ -53,8 +46,6 @@ export default function App() {
         {/* Alumno */}
         <Route path="/solicitar/acceso" element={<SolicitarAcceso />} />
         <Route path="/solicitar" element={<Navigate to="/solicitar/acceso" replace />} />
-        <Route path="/mis-solicitudes" element={<RequiereAlumno><MisSolicitudes /></RequiereAlumno>} />
-        <Route path="/solicitud/:token" element={<Seguimiento />} />
 
         {/* Público */}
         <Route path="/validar" element={<Validar />} />
@@ -76,7 +67,7 @@ export default function App() {
           <Route index element={<Navigate to="bandeja" replace />} />
           <Route path="bandeja" element={<Bandeja />} />
           <Route path="cuenta" element={<Cuenta />} />
-          <Route path="solicitud/:id" element={<SolicitudDetalle />} />
+          <Route path="solicitud/:id" element={<><Bandeja /><ExpedienteModal /></>} />
           <Route path="folios" element={<Folios />} />
           <Route path="consolidado" element={<Consolidado />} />
           <Route
