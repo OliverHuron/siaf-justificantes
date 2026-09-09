@@ -101,6 +101,18 @@ th { color: var(--gris); font-size: .74rem; text-transform: uppercase; letter-sp
 tr.clic { cursor: pointer; }
 tr.clic:hover { background: var(--navy-ghost); }
 .tabla-scroll { overflow-x: auto; }
+td.nowrap, th.nowrap { white-space: nowrap; }
+
+/* botones-icono (bandeja: ver receta / ticket) */
+.icono-grupo { display: flex; gap: 6px; align-items: center; }
+.icono-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0;
+  border: 1px solid var(--borde); border-radius: 8px; background: #fff;
+  color: var(--navy); cursor: pointer;
+}
+.icono-btn:hover:not(:disabled) { background: var(--navy-ghost); border-color: var(--navy-2); }
+.icono-btn:disabled { opacity: .5; cursor: progress; }
 
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .chip {

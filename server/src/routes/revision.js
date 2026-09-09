@@ -94,18 +94,32 @@ router.get('/cola', puedeLeer, async (req, res, next) => {
 
     const where = cond.length ? `WHERE ${cond.join(' AND ')}` : '';
     const r = await db.query(
-      `SELECT s.id, s.origen, s.nombre_declarado, s.matricula_declarada, s.tipo,
-              s.semestres, s.secciones, s.fechas, s.estado, s.estado_triage, s.color,
+      `SELECT s.id, s.origen, s.email_alumno, s.nombre_declarado, s.matricula_declarada, s.tipo,
+              s.origen_atencion, s.semestres, s.secciones, s.fechas, s.estado, s.estado_triage, s.color,
               s.recordatorio, s.banderas, s.requiere_ventanilla, s.ventanilla_recibido,
-              s.enfermeria_confirmada, s.creado_en, s.decidido_en, f.folio
+              s.enfermeria_confirmada, s.creado_en, s.decidido_en, f.folio,
+              adj.adj AS adjuntos
          FROM solicitudes s
          LEFT JOIN folios f ON f.solicitud_id = s.id
+         LEFT JOIN LATERAL (
+           SELECT jsonb_object_agg(t.tipo, t.id) AS adj
+             FROM (
+               SELECT DISTINCT ON (a.tipo) a.tipo, a.id
+                 FROM adjuntos a
+                WHERE a.solicitud_id = s.id AND a.tipo IN ('receta', 'ticket', 'documento_medico')
+                ORDER BY a.tipo, a.id DESC
+             ) t
+         ) adj ON true
          ${where}
          ORDER BY (s.estado = 'pendiente') DESC, s.creado_en DESC
          LIMIT 300`,
       val
     );
-    res.json(r.rows.map((row) => ({ ...row, tipo_etiqueta: (TIPOS[row.tipo] || {}).etiqueta || row.tipo })));
+    res.json(r.rows.map((row) => ({
+      ...row,
+      adjuntos: row.adjuntos || {},
+      tipo_etiqueta: (TIPOS[row.tipo] || {}).etiqueta || row.tipo,
+    })));
   } catch (e) {
     next(e);
   }

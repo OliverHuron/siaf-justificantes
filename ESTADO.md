@@ -83,6 +83,16 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 - ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
 - ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
 
+**Hecho en la sesión del 2026-09-09 (5ª parte)** — bandeja del personal:
+- ✅ Columnas: Fecha y hora · Dirección de correo electrónico · Nombre completo ·
+  Matrícula · Sección · Semestre (nº ordinal) · Día(s) a justificar (dd/mm/aaaa) ·
+  **Comprobantes** (botones-icono) · Estado · Señales. Se retiró la columna Tipo.
+- ✅ Comprobantes: icono para **ver receta/constancia** siempre que exista, e icono
+  para **ver ticket** solo si `origen_atencion = 'privada'`. Abren el adjunto en
+  pestaña nueva con el token de staff (`apiBlob`).
+- Backend: `GET /revision/cola` ahora devuelve `email_alumno`, `origen_atencion` y
+  `adjuntos` (`{receta:id, ticket:id, ...}` vía `LEFT JOIN LATERAL` + `jsonb_object_agg`).
+
 **Hecho en la sesión del 2026-09-09 (4ª parte)** — calendario de día o rango:
 - ✅ `RangoCalendario`: el rango es **opcional**. 1er clic = ese día (`inicio == fin`),
   y con eso ya se habilita el resto del formulario (Datos, Motivo, Resumen, Enviar).
