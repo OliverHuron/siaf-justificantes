@@ -38,6 +38,7 @@ export default function LoginShell({ children }) {
 
       <section className="login2-panel">
         <div className="login2-right-inner">
+          <img src="/zorro.png" alt="" className="login2-zorro" />
           <div className="login2-card">{children}</div>
 
           <div className="login2-ssl">

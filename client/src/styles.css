@@ -190,6 +190,11 @@ tr.clic:hover { background: var(--navy-ghost); }
   width: 100%; max-width: 420px;
   display: flex; flex-direction: column; gap: 24px;
 }
+.login2-zorro {
+  width: 84px; height: 84px; object-fit: contain;
+  align-self: center; margin-bottom: -8px;
+  filter: drop-shadow(0 4px 10px rgba(14, 58, 112, 0.18));
+}
 
 .login2-card {
   background: #fff; border-radius: 16px; padding: 36px 40px;
