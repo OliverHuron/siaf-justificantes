@@ -4,6 +4,13 @@ import { api } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
 import Chips from '../../components/Chips.jsx';
 import Calendario from '../../components/Calendario.jsx';
+import SelectorGrid from '../../components/SelectorGrid.jsx';
+
+const ORD_NUM = {
+  primero: 1, segundo: 2, tercero: 3, cuarto: 4, quinto: 5,
+  sexto: 6, septimo: 7, 'séptimo': 7, octavo: 8, noveno: 9,
+};
+const numSemestre = (clave, etiqueta) => ORD_NUM[clave] ?? ORD_NUM[etiqueta] ?? Number(clave) ?? clave;
 
 export default function NuevaSolicitud() {
   const { alumno, setAlumnoToken } = useAuth();
@@ -27,6 +34,17 @@ export default function NuevaSolicitud() {
 
   const tipoActual = cat.tipos.find((t) => t.clave === f.tipo);
   const adjNecesarios = tipoActual ? tipoActual.adjuntos : [];
+
+  // Periodo en curso: 1 feb – 1 ago → semestres pares; 2 ago – 31 ene → nones.
+  const hoy = new Date();
+  const md = (hoy.getMonth() + 1) * 100 + hoy.getDate();
+  const periodoPar = md >= 201 && md <= 801;
+  const semOpciones = cat.semestres.map((s) => {
+    const n = numSemestre(s.clave, s.etiqueta);
+    return { clave: s.clave, etiqueta: `${n}°`, marcado: (Number(n) % 2 === 0) === periodoPar };
+  });
+  const semSugeridos = semOpciones.filter((o) => o.marcado).map((o) => o.clave);
+  const secOpciones = cat.secciones.filter((s) => s.clave !== 'otro');
 
   const ETIQUETA_ADJ = {
     receta: 'Receta médica',
@@ -110,10 +128,30 @@ export default function NuevaSolicitud() {
         />
 
         <label>Semestre(s)</label>
-        <Chips opciones={cat.semestres} value={f.semestres} onChange={(v) => set('semestres', v)} />
+        <SelectorGrid
+          label="Selecciona los semestres"
+          opciones={semOpciones}
+          value={f.semestres}
+          onChange={(v) => set('semestres', v)}
+          columnas={5}
+          placeholder="Elegir semestre(s)"
+          nota={`Periodo en curso: ${periodoPar ? 'pares (1 feb – 1 ago)' : 'nones (2 ago – 31 ene)'}. Puedes elegir varios.`}
+          sugeridos={semSugeridos}
+          sugerirTexto="Marcar los del periodo"
+          resumen={(a) => a.join('  ')}
+        />
 
         <label>Sección(es)</label>
-        <Chips opciones={cat.secciones} value={f.secciones} onChange={(v) => set('secciones', v)} />
+        <SelectorGrid
+          label="Selecciona las secciones"
+          opciones={secOpciones}
+          value={f.secciones}
+          onChange={(v) => set('secciones', v)}
+          columnas={7}
+          placeholder="Elegir sección(es)"
+          nota="Marca todas las secciones en las que estés inscrito."
+          resumen={(a) => (a.length > 5 ? `${a.length} secciones` : a.join(', '))}
+        />
 
         <label>Día(s) a justificar</label>
         <p className="hint">

@@ -55,10 +55,10 @@ export default function LoginShell({ children }) {
 
         <div className="login2-brand-content">
           <div className="login2-brand-top">
-            <img src="/UMSNHLogo1.png" alt="Logo UMSNH" className="escudo" />
+            <img src="/fcca_vec.png" alt="Logo FCCA" className="escudo" />
             <div>
-              <h1 className="marca">UMSNH</h1>
-              <p className="marca-sub">Universidad Michoacana de San Nicolás de Hidalgo</p>
+              <h1 className="marca">FCCA</h1>
+              <p className="marca-sub">Facultad de Contaduría y Ciencias Administrativas</p>
             </div>
           </div>
 
