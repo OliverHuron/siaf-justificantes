@@ -424,6 +424,17 @@ function OficioPreview({ id, dias, plantillaId, frase, onClose }) {
     try {
       const doc = frameRef.current && frameRef.current.contentDocument;
       if (!doc) return;
+      // El oficio se dibuja dentro de .page (816x1056) con márgenes grises
+      // alrededor; recortamos a ese elemento para que no queden bordes.
+      const page = doc.querySelector('.page');
+      if (page) {
+        page.style.margin = '0 auto';
+        if (doc.body) doc.body.style.background = '#fff';
+        const w = page.offsetWidth || 816;
+        const h = page.offsetHeight || 1056;
+        if (h > 100) setDims({ w, h });
+        return;
+      }
       const el = doc.documentElement;
       const b = doc.body;
       const h = Math.max(el.scrollHeight, b ? b.scrollHeight : 0, el.offsetHeight);
