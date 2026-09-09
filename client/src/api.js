@@ -19,6 +19,12 @@ export function setToken(tipo, val) {
   }
 }
 
+/** Antepone /api salvo que la ruta ya lo traiga (tolera urls tipo `/api/revision/…`). */
+function conBase(path) {
+  const p = String(path || '');
+  return p.startsWith('/api/') || p === '/api' ? p : `/api${p}`;
+}
+
 class ApiError extends Error {
   constructor(status, message, body) {
     super(message);
@@ -46,7 +52,7 @@ export async function api(path, opts = {}) {
     payload = JSON.stringify(body);
   }
 
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(conBase(path), {
     method: method || (body ? 'POST' : 'GET'),
     headers: h,
     body: payload,
@@ -68,7 +74,7 @@ export async function apiBlob(path, tipo) {
   const h = {};
   const tok = tipo ? getToken(tipo) : null;
   if (tok) h.Authorization = `Bearer ${tok}`;
-  const res = await fetch(`/api${path}`, { headers: h });
+  const res = await fetch(conBase(path), { headers: h });
   if (!res.ok) throw new ApiError(res.status, `Error ${res.status}`);
   const blob = await res.blob();
   return URL.createObjectURL(blob);
