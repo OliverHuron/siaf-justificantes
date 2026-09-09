@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth.jsx';
+import LoginShell from '../../components/LoginShell.jsx';
+import CampoIcono from '../../components/CampoIcono.jsx';
 
 export default function StaffLogin({ destino = '/staff' }) {
   const { loginStaff } = useAuth();
@@ -24,25 +26,27 @@ export default function StaffLogin({ destino = '/staff' }) {
   }
 
   return (
-    <div className="login-bg">
-      <form className="login-card" onSubmit={enviar}>
-        <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
-        <h1>Justificantes FCCA</h1>
-        <p className="sub">Acceso institucional</p>
+    <LoginShell>
+      <h2>Bienvenido</h2>
+      <p className="card-sub">Ingresa tus credenciales institucionales para acceder</p>
 
-        {err && <div className="aviso error">{err}</div>}
+      {err && <div className="aviso error">{err}</div>}
 
+      <form onSubmit={enviar}>
         <label>Usuario</label>
-        <input type="text" value={usuario} required autoFocus autoComplete="username"
+        <CampoIcono icono="usuario" type="text" value={usuario} required autoFocus
+          autoComplete="username" placeholder="Ingresa tu usuario"
           onChange={(e) => setUsuario(e.target.value.trim())} />
 
         <label>Contraseña</label>
-        <input type="password" value={password} required autoComplete="current-password"
+        <CampoIcono icono="candado" type="password" value={password} required
+          autoComplete="current-password" placeholder="Ingresa tu contraseña"
           onChange={(e) => setPassword(e.target.value)} />
 
-        <button type="submit" disabled={cargando}>{cargando ? 'Ingresando…' : 'Ingresar'}</button>
-        <Link className="volver" to="/">← Volver al inicio</Link>
+        <button type="submit" className="login2-btn" disabled={cargando}>
+          {cargando ? 'Ingresando…' : 'Iniciar Sesión'}
+        </button>
       </form>
-    </div>
+    </LoginShell>
   );
 }

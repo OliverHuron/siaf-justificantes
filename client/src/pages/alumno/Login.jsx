@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
+import LoginShell from '../../components/LoginShell.jsx';
+import CampoIcono from '../../components/CampoIcono.jsx';
 import CodigoInput from '../../components/CodigoInput.jsx';
 
 export default function AlumnoLogin() {
@@ -43,36 +45,35 @@ export default function AlumnoLogin() {
   }
 
   return (
-    <div className="login-bg">
+    <LoginShell>
       {paso === 'correo' ? (
-        <form className="login-card" onSubmit={pedirCodigo}>
-          <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
-          <h1>Solicitud de justificante</h1>
-          <p className="sub">Ingresa con tu correo institucional <b>@umich.mx</b></p>
+        <form onSubmit={pedirCodigo}>
+          <h2>Solicitud de justificante</h2>
+          <p className="card-sub">Ingresa con tu correo institucional <b>@umich.mx</b></p>
           {err && <div className="aviso error">{err}</div>}
           {msg && <div className="aviso info">{msg}</div>}
           <label>Correo institucional</label>
-          <input type="email" value={email} required autoFocus placeholder="matricula@umich.mx"
-            onChange={(e) => setEmail(e.target.value.trim())} />
-          <button type="submit" disabled={cargando}>{cargando ? 'Enviando…' : 'Enviar código'}</button>
-          <Link className="volver" to="/">← Volver al inicio</Link>
+          <CampoIcono icono="correo" type="email" value={email} required autoFocus
+            placeholder="matricula@umich.mx" onChange={(e) => setEmail(e.target.value.trim())} />
+          <button type="submit" className="login2-btn" disabled={cargando}>
+            {cargando ? 'Enviando…' : 'Enviar código'}
+          </button>
         </form>
       ) : (
-        <form className="login-card" onSubmit={verificar}>
-          <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
-          <h1>Verifica tu código</h1>
-          <p className="sub">{email}</p>
+        <form onSubmit={verificar}>
+          <h2>Verifica tu código</h2>
+          <p className="card-sub">{email}</p>
           {err && <div className="aviso error">{err}</div>}
           {msg && <div className="aviso info">{msg}</div>}
           <label>Código de 6 dígitos</label>
           <CodigoInput value={code} onChange={setCode} n={6} />
-          <button type="submit" disabled={cargando || code.length !== 6}>
+          <button type="submit" className="login2-btn" disabled={cargando || code.length !== 6}>
             {cargando ? 'Verificando…' : 'Entrar'}
           </button>
-          <button type="button" className="plano btn-full" style={{ marginTop: 8 }}
+          <button type="button" className="login2-btn plano" style={{ marginTop: 8 }}
             onClick={() => setPaso('correo')}>Cambiar correo</button>
         </form>
       )}
-    </div>
+    </LoginShell>
   );
 }

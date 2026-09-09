@@ -123,32 +123,92 @@ tr.clic:hover { background: var(--navy-ghost); }
 .cal-day.futuro { color: #cbd5e1; cursor: not-allowed; }
 .cal-day.feriado { color: #cbd5e1; cursor: not-allowed; text-decoration: line-through; }
 
-/* ---------- login ---------- */
-.login-bg {
-  min-height: 100vh;
-  display: flex; align-items: center; justify-content: center;
-  padding: 24px;
-  background: url('/fondo.jpg') center / cover no-repeat;
+/* ---------- login (pantalla partida) ---------- */
+:root { --brand: #1e56d6; --brand-2: #1a49bd; }
+
+.login2 { min-height: 100vh; display: grid; grid-template-columns: 55% 45%; }
+
+.login2-brand {
   position: relative;
+  color: #fff;
+  padding: 46px 56px;
+  display: flex; flex-direction: column;
+  background: url('/fondo_login.jpg') center / cover no-repeat;
+  overflow: hidden;
 }
-.login-bg::before {
+.login2-brand::before {
   content: ""; position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(20,40,150,.90), rgba(16,32,120,.86));
+  background: linear-gradient(160deg, rgba(37,99,235,.90), rgba(23,58,163,.94));
 }
-.login-card {
-  position: relative;
+.login2-brand > * { position: relative; z-index: 1; }
+
+.login2-brand-top { display: flex; align-items: center; gap: 14px; }
+.login2-brand-top .escudo { width: 46px; height: 46px; filter: brightness(0) invert(1); opacity: .95; }
+.login2-brand-top .marca { font-weight: 800; font-size: 1.15rem; letter-spacing: .04em; }
+.login2-brand-top .marca-sub { font-size: .74rem; color: rgba(255,255,255,.8); }
+
+.login2-brand-mid { margin-top: auto; margin-bottom: auto; padding: 40px 0; }
+.login2-brand-mid h1 { font-size: 2.3rem; line-height: 1.15; font-weight: 800; margin: 0 0 14px; }
+.login2-brand-mid .lead { font-size: 1rem; color: rgba(255,255,255,.9); margin: 0 0 28px; }
+.login2-brand-mid blockquote {
+  margin: 0; padding-left: 16px; border-left: 3px solid rgba(255,255,255,.55);
+  font-style: italic; font-size: 1rem;
+}
+.login2-brand-mid blockquote span {
+  display: block; font-style: normal; font-size: .78rem;
+  color: rgba(255,255,255,.72); margin-top: 6px;
+}
+.login2-brand-foot { font-size: .74rem; color: rgba(255,255,255,.75); }
+
+.login2-panel {
+  background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 28px; gap: 14px;
+}
+.login2-card {
   width: 100%; max-width: 380px;
-  background: #fff; border-radius: 16px;
-  padding: 30px 28px 26px;
-  box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  border: 1px solid var(--borde); border-radius: 16px;
+  padding: 30px 30px 28px;
+  box-shadow: 0 10px 40px rgba(20,40,120,.08);
 }
-.login-card .logo { display: block; height: 44px; margin: 0 auto 20px; }
-.login-card h1 { text-align: center; font-size: 1.05rem; color: var(--navy); margin-bottom: 4px; }
-.login-card .sub { text-align: center; font-size: .84rem; margin-bottom: 18px; }
-.login-card button[type=submit], .login-card .btn-full {
-  width: 100%; margin-top: 16px; padding: 11px;
+.login2-card h2 { text-align: center; font-size: 1.4rem; margin: 0 0 4px; }
+.login2-card .card-sub { text-align: center; color: var(--gris); font-size: .86rem; margin: 0 0 20px; }
+.login2-card label { font-size: .84rem; }
+
+.login2-btn {
+  width: 100%; margin-top: 18px; padding: 12px;
+  background: var(--brand); border-color: var(--brand); font-size: .95rem;
 }
-.login-card .volver { display: block; text-align: center; margin-top: 14px; font-size: .84rem; }
+.login2-btn:hover { background: var(--brand-2); border-color: var(--brand-2); }
+.login2-btn.plano { background: #fff; color: var(--texto); border-color: var(--borde); }
+
+.campo-icono { position: relative; }
+.campo-icono .ci-izq {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  width: 17px; height: 17px; color: var(--gris); pointer-events: none;
+}
+.campo-icono input { padding-left: 36px; }
+.campo-icono input[type=password], .campo-icono input:has(~ .ci-eye) { padding-right: 40px; }
+.campo-icono .ci-eye {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--gris); padding: 6px; cursor: pointer;
+}
+.campo-icono .ci-eye:hover { color: var(--texto); background: none; }
+
+.ssl-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--gris-suave); color: var(--gris);
+  font-size: .78rem; padding: 8px 16px; border-radius: 999px;
+}
+.login2-volver { font-size: .82rem; }
+
+@media (max-width: 860px) {
+  .login2 { grid-template-columns: 1fr; }
+  .login2-brand { padding: 28px 26px; min-height: 220px; }
+  .login2-brand-mid { padding: 22px 0; }
+  .login2-brand-mid h1 { font-size: 1.6rem; }
+  .login2-brand-mid blockquote { font-size: .9rem; }
+}
 
 /* código OTP en cuadros */
 .otp { display: flex; gap: 8px; margin-top: 6px; }
