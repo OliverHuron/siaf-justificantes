@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
-import SelectorGrid from '../../components/SelectorGrid.jsx';
+import GruposSelector from '../../components/GruposSelector.jsx';
 import RangoCalendario from '../../components/RangoCalendario.jsx';
 
 const ORD_NUM = {
@@ -23,9 +23,8 @@ export default function NuevaSolicitud() {
   const [cat, setCat] = useState(null);
   const [f, setF] = useState({
     nombre: '', tipo: '', origen: '',
-    semestres: [], secciones: [], rango: { inicio: null, fin: null }, contexto_extra: '',
+    grupos: [], rango: { inicio: null, fin: null }, contexto_extra: '',
   });
-  const [exp, setExp] = useState(null); // expediente resuelto
   const [archivos, setArchivos] = useState({});
   const [consentimiento, setConsentimiento] = useState(false);
   const [err, setErr] = useState('');
@@ -33,19 +32,6 @@ export default function NuevaSolicitud() {
   const [hecho, setHecho] = useState(null);
 
   useEffect(() => { api('/catalogos').then(setCat).catch((e) => setErr(e.message)); }, []);
-
-  const semPrimario = f.semestres[0];
-  const secPrimaria = f.secciones[0];
-  useEffect(() => {
-    if (!semPrimario || !secPrimaria) { setExp(null); return; }
-    const n = numSemestre(semPrimario);
-    let vivo = true;
-    setExp({ cargando: true });
-    api(`/expediente?semestre=${encodeURIComponent(n)}&seccion=${encodeURIComponent(secPrimaria)}`)
-      .then((r) => vivo && setExp(r))
-      .catch(() => vivo && setExp({ encontrado: false }));
-    return () => { vivo = false; };
-  }, [semPrimario, secPrimaria]);
 
   if (err && !cat) return <div className="wrap"><div className="aviso error">{err}</div></div>;
   if (!cat) return <div className="wrap"><p>Cargando…</p></div>;
@@ -77,9 +63,10 @@ export default function NuevaSolicitud() {
   async function enviar(e) {
     e.preventDefault();
     setErr('');
+    if (!f.nombre.trim()) { setErr('Escribe tu nombre completo.'); return; }
+    if (!f.grupos.length) { setErr('Agrega al menos un grupo (semestre y sección).'); return; }
     if (!f.tipo) { setErr('Selecciona el tipo de justificante.'); return; }
     if (esMedico && !f.origen) { setErr('Selecciona el origen de atención.'); return; }
-    if (!f.semestres.length || !f.secciones.length) { setErr('Elige semestre y sección.'); return; }
     if (!f.rango.inicio || !f.rango.fin) { setErr('Selecciona el rango de fechas (inicio y fin).'); return; }
     if (!consentimiento) { setErr('Debes aceptar el Aviso de Privacidad.'); return; }
     for (const a of adjNecesarios) {
@@ -91,8 +78,7 @@ export default function NuevaSolicitud() {
       fd.append('nombre', f.nombre);
       fd.append('tipo', f.tipo);
       if (esMedico) fd.append('origen', f.origen);
-      fd.append('semestres', JSON.stringify(f.semestres));
-      fd.append('secciones', JSON.stringify(f.secciones));
+      fd.append('grupos', JSON.stringify(f.grupos.map((g) => ({ semestre: g.semestre, seccion: g.seccion }))));
       fd.append('fecha_inicio', f.rango.inicio);
       fd.append('fecha_fin', f.rango.fin);
       if (f.contexto_extra) fd.append('contexto_extra', f.contexto_extra);
@@ -122,10 +108,6 @@ export default function NuevaSolicitud() {
       </div>
     );
   }
-
-  const cardExp = (rot, val) => (
-    <div className="exp-card"><div className="exp-rot">{rot}</div><div className="exp-val">{val || '—'}</div></div>
-  );
 
   return (
     <div className="wrap-ancho form-just">
@@ -167,48 +149,17 @@ export default function NuevaSolicitud() {
           <label style={{ marginTop: 12 }}>Nombre completo</label>
           <input type="text" required value={f.nombre} onChange={(e) => set('nombre', e.target.value)} />
 
-          <div className="grid2" style={{ marginTop: 12 }}>
-            <div>
-              <label>Semestre</label>
-              <SelectorGrid
-                label="Selecciona el/los semestre(s)" opciones={semOpciones}
-                value={f.semestres} onChange={(v) => set('semestres', v)} columnas={5}
-                placeholder="Elegir semestre" resumen={(a) => a.join('  ')}
-              />
-            </div>
-            <div>
-              <label>Sección</label>
-              <SelectorGrid
-                label="Selecciona la(s) sección(es)" opciones={secOpciones}
-                value={f.secciones} onChange={(v) => set('secciones', v)} columnas={7}
-                placeholder="Elegir sección"
-                resumen={(a) => (a.length > 5 ? `${a.length} secciones` : a.join(', '))}
-              />
-            </div>
-          </div>
+          <label style={{ marginTop: 14 }}>Grupo(s) en los que estás inscrito</label>
+          <GruposSelector
+            semOpciones={semOpciones} secOpciones={secOpciones}
+            numSemestre={(c) => numSemestre(c)}
+            onChange={(g) => set('grupos', g)}
+          />
 
-          {(() => {
-            const v = (nom) => (exp?.cargando ? 'Consultando…' : exp?.encontrado ? nom : (semPrimario && secPrimaria ? 'No disponible' : '—'));
-            return (
-              <div className="exp-cards">
-                {cardExp('LICENCIATURA', v(exp?.licenciatura_nombre))}
-                {cardExp('TURNO', v(exp?.turno_nombre))}
-                {cardExp('SALÓN', v(exp?.salon))}
-                {cardExp('MODALIDAD', v(exp?.modalidad_nombre))}
-                {cardExp('PERIODO', v(exp?.periodo))}
-              </div>
-            );
-          })()}
-          <div className="exp-cards">
-            {cardExp('MATRÍCULA', matricula)}
-            {cardExp('CORREO INSTITUCIONAL', alumno?.email)}
+          <div className="exp-cards" style={{ marginTop: 14 }}>
+            <div className="exp-card"><div className="exp-rot">MATRÍCULA</div><div className="exp-val">{matricula}</div></div>
+            <div className="exp-card"><div className="exp-rot">CORREO INSTITUCIONAL</div><div className="exp-val">{alumno?.email}</div></div>
           </div>
-          {semPrimario && secPrimaria && exp && !exp.cargando && !exp.encontrado && (
-            <p className="hint">
-              No se pudo obtener el expediente de fcca.umich.mx{exp.error ? ` (${exp.error})` : ''};
-              la Secretaría lo verificará.
-            </p>
-          )}
         </section>
 
         {/* ---------- MOTIVO Y COMPROBANTES ---------- */}

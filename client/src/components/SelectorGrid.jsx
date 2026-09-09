@@ -17,7 +17,7 @@ import { useEffect, useState } from 'react';
  */
 export default function SelectorGrid({
   label, opciones, value = [], onChange,
-  columnas = 6, placeholder = 'Seleccionar…', nota,
+  columnas = 6, placeholder = 'Seleccionar…', nota, unico = false,
   sugeridos, sugerirTexto = 'Marcar sugeridos', resumen,
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -33,6 +33,11 @@ export default function SelectorGrid({
   }, [abierto]);
 
   function toggle(clave) {
+    if (unico) {
+      onChange(sel.has(clave) ? [] : [clave]);
+      setAbierto(false);
+      return;
+    }
     const n = new Set(sel);
     if (n.has(clave)) n.delete(clave); else n.add(clave);
     onChange([...n]);
@@ -72,7 +77,7 @@ export default function SelectorGrid({
               ))}
             </div>
 
-            {sugeridos && sugeridos.length > 0 && (
+            {!unico && sugeridos && sugeridos.length > 0 && (
               <div className="sg-sugerir">
                 <button type="button" onClick={() => onChange([...new Set([...value, ...sugeridos])])}>
                   {sugerirTexto}
@@ -80,10 +85,12 @@ export default function SelectorGrid({
               </div>
             )}
 
-            <div className="sg-dialog-foot">
-              <button type="button" className="sg-link" onClick={() => onChange([])}>Limpiar</button>
-              <button type="button" className="sg-ok" onClick={() => setAbierto(false)}>Listo</button>
-            </div>
+            {!unico && (
+              <div className="sg-dialog-foot">
+                <button type="button" className="sg-link" onClick={() => onChange([])}>Limpiar</button>
+                <button type="button" className="sg-ok" onClick={() => setAbierto(false)}>Listo</button>
+              </div>
+            )}
           </div>
         </div>
       )}

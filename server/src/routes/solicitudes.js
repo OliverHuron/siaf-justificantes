@@ -77,8 +77,30 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
     const nombre = String(b.nombre || '').trim();
     const tipoUi = String(b.tipo || '').trim();
     const origen = String(b.origen || '').trim() || null;
-    const semestres = parseLista(b.semestres);
-    const secciones = parseLista(b.secciones);
+
+    // grupos: [{ semestre, seccion }, ...]. Compat: si viene semestres[]/secciones[]
+    // (cliente viejo), se emparejan por posición.
+    let gruposEntrada = [];
+    try {
+      const raw = typeof b.grupos === 'string' ? JSON.parse(b.grupos) : b.grupos;
+      if (Array.isArray(raw)) {
+        gruposEntrada = raw
+          .map((g) => ({ semestre: String(g.semestre || '').trim(), seccion: String(g.seccion || '').trim() }))
+          .filter((g) => g.semestre && g.seccion);
+      }
+    } catch (_) { /* se valida abajo */ }
+    if (!gruposEntrada.length) {
+      const ss = parseLista(b.semestres);
+      const cc = parseLista(b.secciones);
+      gruposEntrada = ss.map((s, i) => ({ semestre: s, seccion: cc[i] || cc[0] })).filter((g) => g.seccion);
+    }
+    // sin duplicados
+    gruposEntrada = gruposEntrada.filter(
+      (g, i, arr) => arr.findIndex((x) => x.semestre === g.semestre && x.seccion === g.seccion) === i
+    );
+    const semestres = [...new Set(gruposEntrada.map((g) => g.semestre))];
+    const secciones = [...new Set(gruposEntrada.map((g) => g.seccion))];
+
     const fechaInicio = String(b.fecha_inicio || '').slice(0, 10);
     const fechaFin = String(b.fecha_fin || '').slice(0, 10);
     const contextoExtra = String(b.contexto_extra || '').trim() || null;
@@ -92,8 +114,7 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
     if (!nombre) throw new ApiError(400, 'El nombre completo es obligatorio');
     const motivo = resolverMotivo(tipoUi, origen);
     if (!motivo) throw new ApiError(400, 'Selecciona el tipo de justificante y el origen de atención');
-    if (!semestres.length) throw new ApiError(400, 'Selecciona al menos un semestre');
-    if (!secciones.length) throw new ApiError(400, 'Selecciona al menos una sección');
+    if (!gruposEntrada.length) throw new ApiError(400, 'Agrega al menos un grupo (semestre y sección)');
     if (!FECHA_RE.test(fechaInicio) || !FECHA_RE.test(fechaFin)) {
       throw new ApiError(400, 'Indica la fecha de inicio y de fin');
     }
@@ -143,12 +164,22 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
       throw new ApiError(409, `Ya tienes ${pendientesMax} solicitudes pendientes. Espera a que se resuelvan.`);
     }
 
-    // Expediente académico (snapshot) del grupo primario — consulta en vivo con
-    // caché. Si tarda o falla no bloquea el envío: se guarda sin snapshot.
-    const exp = await Promise.race([
-      resolverExpediente(semestres[0], secciones[0]).catch(() => ({ encontrado: false })),
-      new Promise((r) => setTimeout(() => r({ encontrado: false }), 4000)),
+    // Expediente por grupo — consulta en vivo con caché. No bloquea el envío:
+    // límite global de 5 s; los que no resuelvan quedan sin snapshot.
+    const expedientes = await Promise.race([
+      Promise.all(
+        gruposEntrada.map((g) => resolverExpediente(g.semestre, g.seccion).catch(() => ({ encontrado: false })))
+      ),
+      new Promise((r) => setTimeout(() => r(gruposEntrada.map(() => ({ encontrado: false }))), 5000)),
     ]);
+    const gruposSnap = gruposEntrada.map((g, i) => {
+      const e = expedientes[i] || {};
+      return e.encontrado
+        ? { semestre: g.semestre, seccion: g.seccion, licenciatura: e.licenciatura,
+            turno: e.turno, salon: e.salon, modalidad: e.modalidad, periodo: e.periodo }
+        : { semestre: g.semestre, seccion: g.seccion };
+    });
+    const exp = expedientes[0] && expedientes[0].encontrado ? expedientes[0] : { encontrado: false };
 
     const tipo = motivo.tipo;
     const fechasOrdenadas = fechasHabiles;
@@ -162,14 +193,15 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
       const ins = await client.query(
         `INSERT INTO solicitudes
            (origen, email_alumno, nombre_declarado, matricula_declarada, semestres, secciones,
-            tipo, origen_atencion, fechas, fecha_inicio, fecha_fin, contexto_extra,
+            grupos, tipo, origen_atencion, fechas, fecha_inicio, fecha_fin, contexto_extra,
             dias_texto_oficio, licenciatura, turno, salon, modalidad, periodo,
             estado, token_seguimiento, banderas, ip_solicitud, enviado_en)
-         VALUES ('alumno',$1,$2,$3,$4,$5,$6,$7,$8::date[],$9,$10,$11,$12,$13,$14,$15,$16,$17,
-                 'pendiente',$18,$19::jsonb,$20, now())
+         VALUES ('alumno',$1,$2,$3,$4,$5,$6::jsonb,$7,$8,$9::date[],$10,$11,$12,$13,$14,$15,$16,$17,$18,
+                 'pendiente',$19,$20::jsonb,$21, now())
          RETURNING id, token_seguimiento, creado_en`,
         [
-          email, nombre, matricula, semestres, secciones, tipo, motivo.origen_atencion,
+          email, nombre, matricula, semestres, secciones, JSON.stringify(gruposSnap),
+          tipo, motivo.origen_atencion,
           fechasOrdenadas, fechaInicio, fechaFin, contextoExtra, textoDias(fechasOrdenadas),
           exp.encontrado ? exp.licenciatura : null,
           exp.encontrado ? exp.turno : null,

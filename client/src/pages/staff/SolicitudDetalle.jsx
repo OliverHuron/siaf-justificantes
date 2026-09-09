@@ -82,13 +82,23 @@ export default function SolicitudDetalle() {
             <table>
               <tbody>
                 <tr><th>Matrícula</th><td className="mono">{s.matricula_declarada}</td></tr>
-                <tr><th>Semestre(s)</th><td>{s.semestres?.join(', ')}</td></tr>
-                <tr><th>Sección(es)</th><td>{s.secciones?.join(', ')}</td></tr>
-                {(s.licenciatura || s.turno || s.salon || s.modalidad) && (
-                  <tr><th>Expediente</th><td>
-                    {[s.licenciatura, s.turno, s.salon, s.modalidad].filter(Boolean).join(' · ')}
-                    {s.periodo ? ` (${s.periodo})` : ''}
+                {Array.isArray(s.grupos) && s.grupos.length > 0 ? (
+                  <tr><th>Grupos</th><td>
+                    {s.grupos.map((g, i) => (
+                      <div key={i}>
+                        <strong>{g.semestre}° · Secc {g.seccion}</strong>
+                        {[g.licenciatura, g.turno, g.salon, g.modalidad].filter(Boolean).length
+                          ? ` — ${[g.licenciatura, g.turno, g.salon, g.modalidad].filter(Boolean).join(' · ')}`
+                          : ' — (expediente no disponible)'}
+                      </div>
+                    ))}
+                    {s.periodo ? <div className="hint">Periodo: {s.periodo}</div> : null}
                   </td></tr>
+                ) : (
+                  <>
+                    <tr><th>Semestre(s)</th><td>{s.semestres?.join(', ')}</td></tr>
+                    <tr><th>Sección(es)</th><td>{s.secciones?.join(', ')}</td></tr>
+                  </>
                 )}
                 {s.fecha_inicio && s.fecha_fin && (
                   <tr><th>Rango</th><td className="mono">{s.fecha_inicio} → {s.fecha_fin}</td></tr>

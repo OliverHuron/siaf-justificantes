@@ -86,6 +86,11 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 **Hecho en la sesión del 2026-09-09** — formulario de solicitud rediseñado:
 - ✅ Layout por secciones con headers navy (FECHAS / EXPEDIENTE / MOTIVO Y COMPROBANTES),
   calendario de **rango** (inicio→fin) con tarjetas Inicio/Fin/Total.
+- ✅ **Lista de grupos** (`GruposSelector`): el alumno agrega uno o varios grupos
+  (semestre + sección); cada uno se resuelve en vivo y se muestra como **una fila
+  compacta** (`7° · Secc 26 — LIA · Vespertino · A2-LAB4 · ESC`), responsive. Se guarda
+  `solicitudes.grupos` jsonb con snapshot por grupo; `semestres`/`secciones` se derivan;
+  las columnas `licenciatura/turno/...` guardan el grupo **principal** (1º) para el oficio.
 - ✅ **Expediente automático (consulta en vivo, sin BD)**: `lib/fcca.js` consulta
   `fcca.umich.mx/Horarios.php` al vuelo con **caché en memoria** (sesión ~10 min,
   resultado por grupo ~12 h). `GET /api/expediente?semestre=&seccion=` → licenciatura/

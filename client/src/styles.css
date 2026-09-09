@@ -375,6 +375,41 @@ tr.clic:hover { background: var(--navy-ghost); }
 }
 .btn-enviar:hover { background: var(--navy-2); }
 
+/* lista de grupos (semestre + sección) */
+.grupos { margin-top: 6px; }
+.grupos-add { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.grupos-add-f { flex: 1 1 200px; min-width: 150px; }
+.grupos-add-f label { margin: 0 0 4px; }
+.grupos-add-btn { flex: 0 0 auto; white-space: nowrap; }
+@media (max-width: 560px) {
+  .grupos-add-f { flex-basis: calc(50% - 6px); }
+  .grupos-add-btn { flex-basis: 100%; }
+}
+
+.grupos-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.grupo-row {
+  position: relative;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 11px 42px 11px 14px;
+  border: 1px solid var(--borde); border-radius: 10px; background: #f8fafc;
+}
+.grupo-row.sin { border-color: #fdba74; background: #fff7ed; }
+.grupo-id { font-weight: 800; color: var(--navy); white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.grupo-tag {
+  font-size: .62rem; font-weight: 800; letter-spacing: .04em;
+  background: var(--navy); color: #fff; padding: 2px 7px; border-radius: 999px;
+}
+.grupo-datos { color: var(--gris); font-size: .88rem; flex: 1; min-width: 160px; }
+.grupo-x {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; color: var(--gris); font-size: 1.3rem; line-height: 1;
+  cursor: pointer; padding: 4px 8px;
+}
+.grupo-x:hover { color: var(--mal); background: none; }
+@media (max-width: 560px) {
+  .grupo-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+}
+
 /* calendario de rango */
 .rc { border: 1px solid var(--borde); border-radius: 10px; padding: 12px; width: 320px; max-width: 100%; background: #fff; }
 .rc-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 8px; }
