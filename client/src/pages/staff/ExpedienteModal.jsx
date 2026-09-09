@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api, apiBlob } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
@@ -54,6 +54,7 @@ export default function ExpedienteModal() {
   const [rech, setRech] = useState({ abierto: false, plantilla_clave: '', motivo: '' });
   const [vent, setVent] = useState({ abierto: false, plantilla_clave: 'pasar_ventanilla', nota: '' });
   const [nota, setNota] = useState({ color: '', recordatorio: '' });
+  const [preview, setPreview] = useState(false);
 
   const cerrar = useCallback(() => nav('/staff/bandeja'), [nav]);
 
@@ -76,12 +77,12 @@ export default function ExpedienteModal() {
     api('/plantillas?ambito=correo&activo=true').then(setPlCorreo).catch(() => {});
   }, []);
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') cerrar(); };
+    const onKey = (e) => { if (e.key === 'Escape' && !preview) cerrar(); };
     window.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
-  }, [cerrar]);
+  }, [cerrar, preview]);
 
   const s = d?.solicitud;
   const esImss = s?.tipo === 'receta_imss';
@@ -93,18 +94,9 @@ export default function ExpedienteModal() {
     try { await fn(); } catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
 
-  async function verOficio() {
-    setErr('');
-    try {
-      const q = new URLSearchParams({ dias: diasAprob.join(',') });
-      if (aprob.plantilla_cuerpo_id) q.set('plantilla_cuerpo_id', aprob.plantilla_cuerpo_id);
-      if (aprob.frase_cuerpo) q.set('frase_cuerpo', aprob.frase_cuerpo);
-      const u = await apiBlob(`/revision/${id}/oficio-preview?${q}`, 'staff');
-      window.open(u, '_blank', 'noopener');
-    } catch (e) { setErr(e.message); }
-  }
 
   return (
+    <>
     <div className="modal-ovl" onClick={cerrar}>
       <div className="modal-exp" onClick={(e) => e.stopPropagation()}>
         <div className="modal-exp-head">
@@ -177,6 +169,31 @@ export default function ExpedienteModal() {
                     )}
                   </div>
                 </details>
+
+                {puedeActuar && (
+                  <details className="exp-acc">
+                    <summary>Nota interna y color</summary>
+                    <div className="exp-acc-body">
+                      <div className="fila" style={{ alignItems: 'center' }}>
+                        <input type="color" value={nota.color || '#ffffff'} style={{ width: 44, padding: 2 }}
+                          onChange={(e) => setNota((n) => ({ ...n, color: e.target.value }))} />
+                        <input type="text" value={nota.recordatorio} style={{ flex: 1 }}
+                          onChange={(e) => setNota((n) => ({ ...n, recordatorio: e.target.value }))}
+                          placeholder="p. ej. revisar receta con dirección" />
+                      </div>
+                      <button className="sec mini" style={{ marginTop: 8 }} disabled={busy}
+                        onClick={() => accion(async () => {
+                          await api(`/revision/${id}/triage`, { method: 'PATCH', body: { color: nota.color || null, recordatorio: nota.recordatorio || '' } });
+                          setOk('Nota guardada'); cargar();
+                        })}>Guardar nota</button>
+                    </div>
+                  </details>
+                )}
+
+                <button type="button" className="plano" style={{ width: '100%' }}
+                  onClick={() => setPreview(true)}>
+                  Vista previa del oficio
+                </button>
               </div>
 
               {/* ---------- Detalle del alumno ---------- */}
@@ -313,11 +330,7 @@ export default function ExpedienteModal() {
                       Verifiqué que las fechas coinciden con la receta / comprobante
                     </label>
 
-                    <div style={{ margin: '10px 0' }}>
-                      <button type="button" className="plano mini" onClick={verOficio}>Vista previa del oficio</button>
-                    </div>
-
-                    <div className="dictamen-btns">
+                    <div className="dictamen-btns" style={{ marginTop: 10 }}>
                       <button className="btn-aprobar" disabled={busy || diasAprob.length === 0}
                         onClick={() => accion(async () => {
                           const r = await api(`/revision/${id}/aprobar`, {
@@ -375,26 +388,6 @@ export default function ExpedienteModal() {
                   </div>
                 )}
 
-                {puedeActuar && (
-                  <details className="exp-acc">
-                    <summary>Nota interna y color</summary>
-                    <div className="exp-acc-body">
-                      <div className="fila" style={{ alignItems: 'center' }}>
-                        <input type="color" value={nota.color || '#ffffff'} style={{ width: 44, padding: 2 }}
-                          onChange={(e) => setNota((n) => ({ ...n, color: e.target.value }))} />
-                        <input type="text" value={nota.recordatorio} style={{ flex: 1 }}
-                          onChange={(e) => setNota((n) => ({ ...n, recordatorio: e.target.value }))}
-                          placeholder="p. ej. revisar receta con dirección" />
-                      </div>
-                      <button className="sec mini" style={{ marginTop: 8 }} disabled={busy}
-                        onClick={() => accion(async () => {
-                          await api(`/revision/${id}/triage`, { method: 'PATCH', body: { color: nota.color || null, recordatorio: nota.recordatorio || '' } });
-                          setOk('Nota guardada'); cargar();
-                        })}>Guardar nota</button>
-                    </div>
-                  </details>
-                )}
-
                 {err && <div className="aviso error">{err}</div>}
                 {ok && <div className="aviso exito">{ok}</div>}
               </div>
@@ -405,6 +398,83 @@ export default function ExpedienteModal() {
             </div>
           </>
         )}
+      </div>
+    </div>
+
+    {preview && (
+      <OficioPreview id={id} dias={diasAprob}
+        plantillaId={aprob.plantilla_cuerpo_id} frase={aprob.frase_cuerpo}
+        onClose={() => setPreview(false)} />
+    )}
+    </>
+  );
+}
+
+/** Modal (encima del expediente) con el oficio: arrastrar para mover, rueda para zoom. */
+function OficioPreview({ id, dias, plantillaId, frase, onClose }) {
+  const [src, setSrc] = useState(null);
+  const [err, setErr] = useState('');
+  const [z, setZ] = useState(1);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const drag = useRef(null);
+
+  useEffect(() => {
+    let obj;
+    let vivo = true;
+    const q = new URLSearchParams({ dias: (dias || []).join(',') });
+    if (plantillaId) q.set('plantilla_cuerpo_id', plantillaId);
+    if (frase) q.set('frase_cuerpo', frase);
+    apiBlob(`/revision/${id}/oficio-preview?${q}`, 'staff')
+      .then((u) => { if (vivo) { obj = u; setSrc(u); } })
+      .catch((e) => vivo && setErr(e.message));
+    return () => { vivo = false; if (obj) URL.revokeObjectURL(obj); };
+  }, [id, dias, plantillaId, frase]);
+
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onClose]);
+
+  function onWheel(e) {
+    e.preventDefault();
+    setZ((v) => Math.min(3, Math.max(0.4, +(v * (e.deltaY < 0 ? 1.12 : 0.9)).toFixed(3))));
+  }
+  function onDown(e) { drag.current = { x: e.clientX - pos.x, y: e.clientY - pos.y }; }
+  function onMove(e) {
+    if (!drag.current) return;
+    setPos({ x: e.clientX - drag.current.x, y: e.clientY - drag.current.y });
+  }
+  function onUp() { drag.current = null; }
+  function ajustar() { setZ(1); setPos({ x: 0, y: 0 }); }
+
+  return (
+    <div className="modal-ovl modal-ovl--top" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+      <div className="modal-prev" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-exp-head">
+          <h2>Vista previa del oficio</h2>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="plano mini" onClick={ajustar}>Ajustar</button>
+            <button type="button" className="modal-exp-x" aria-label="Cerrar" onClick={onClose}>×</button>
+          </div>
+        </div>
+        <div className="modal-prev-body" onWheel={onWheel} onMouseDown={onDown}
+          onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}>
+          {err ? (
+            <div className="aviso error" style={{ margin: 16 }}>
+              No se pudo generar la vista previa: {err}.
+              {/404/.test(err) && ' Reinicia el servidor (npm run dev) para activar esta función.'}
+            </div>
+          ) : !src ? (
+            <p style={{ padding: 24, color: '#e2e8f0' }}>Generando…</p>
+          ) : (
+            <iframe title="Oficio" src={src} className="modal-prev-frame"
+              style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${z})` }} />
+          )}
+        </div>
+        <div className="modal-prev-foot">
+          <span className="hint">Arrastra para mover · rueda del ratón para zoom ({Math.round(z * 100)}%)</span>
+        </div>
       </div>
     </div>
   );
