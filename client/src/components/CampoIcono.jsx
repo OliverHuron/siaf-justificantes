@@ -1,40 +1,44 @@
 import { useState } from 'react';
 
 const ICONOS = {
-  usuario: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-3.3 3.6-6 8-6s8 2.7 8 6" />,
-  correo: <path d="M4 6h16v12H4zM4 7l8 6 8-6" />,
-  candado: <path d="M6 10V8a6 6 0 0 1 12 0v2M5 10h14v10H5z" />,
-  codigo: <path d="M8 6l-4 6 4 6M16 6l4 6-4 6" />,
+  usuario: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />,
+  candado: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />,
+  correo: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />,
 };
 
+const OJO = <>
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+</>;
+const OJO_OFF = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />;
+
 /**
- * Input con icono a la izquierda. Si `type === 'password'` agrega el toggle de
- * mostrar/ocultar. El resto de props se pasan al <input>.
+ * Campo con icono a la izquierda dentro de un contenedor con borde (patrón de
+ * InvPatrimonio). Para `type="password"` agrega el toggle mostrar/ocultar.
  */
 export default function CampoIcono({ icono = 'usuario', type = 'text', ...props }) {
   const [ver, setVer] = useState(false);
   const esPass = type === 'password';
   return (
-    <div className="campo-icono">
-      <svg className="ci-izq" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        {ICONOS[icono] || ICONOS.usuario}
-      </svg>
+    <div className="login2-inp">
+      <span className="login2-inp-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          {ICONOS[icono] || ICONOS.usuario}
+        </svg>
+      </span>
       <input type={esPass ? (ver ? 'text' : 'password') : type} {...props} />
       {esPass && (
-        <button type="button" className="ci-eye" tabIndex={-1} onClick={() => setVer((v) => !v)}
+        <button type="button" className="login2-inp-eye" tabIndex={-1}
+          onClick={() => setVer((v) => !v)}
           aria-label={ver ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
-          {ver ? (
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10 10 0 0 1 12 4c6 0 10 8 10 8a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s4 8 10 8a10 10 0 0 0 4-.8" />
-            </svg>
-          ) : (
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-              strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z" /><circle cx="12" cy="12" r="3" />
-            </svg>
-          )}
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {ver ? OJO_OFF : OJO}
+          </svg>
         </button>
       )}
     </div>
