@@ -23,6 +23,12 @@ function RequiereAlumno({ children }) {
   return alumno ? children : <Navigate to="/solicitar/acceso" replace />;
 }
 
+/** En /solicitar/acceso: pide el código si no hay sesión; ya autenticado, muestra el formulario. */
+function SolicitarAcceso() {
+  const { alumno } = useAuth();
+  return alumno ? <NuevaSolicitud /> : <AlumnoLogin />;
+}
+
 function RequiereStaff({ roles, children }) {
   const { staff } = useAuth();
   if (!staff) return <Navigate to="/staff/acceso" replace />;
@@ -45,8 +51,8 @@ export default function App() {
         <Route path="/" element={<Inicio />} />
 
         {/* Alumno */}
-        <Route path="/solicitar/acceso" element={<AlumnoLogin />} />
-        <Route path="/solicitar" element={<RequiereAlumno><NuevaSolicitud /></RequiereAlumno>} />
+        <Route path="/solicitar/acceso" element={<SolicitarAcceso />} />
+        <Route path="/solicitar" element={<Navigate to="/solicitar/acceso" replace />} />
         <Route path="/mis-solicitudes" element={<RequiereAlumno><MisSolicitudes /></RequiereAlumno>} />
         <Route path="/solicitud/:token" element={<Seguimiento />} />
 

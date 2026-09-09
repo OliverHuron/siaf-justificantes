@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
 import LoginShell from '../../components/LoginShell.jsx';
@@ -8,7 +7,6 @@ import CodigoInput from '../../components/CodigoInput.jsx';
 
 export default function AlumnoLogin() {
   const { setAlumnoToken } = useAuth();
-  const nav = useNavigate();
   const [paso, setPaso] = useState('correo');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -35,8 +33,7 @@ export default function AlumnoLogin() {
     setErr(''); setCargando(true);
     try {
       const r = await api('/auth/alumno/verificar-codigo', { body: { email, code } });
-      setAlumnoToken(r.token);
-      nav('/solicitar', { replace: true });
+      setAlumnoToken(r.token); // el contenedor de /solicitar/acceso muestra el formulario
     } catch (e2) {
       setErr(e2.message);
     } finally {

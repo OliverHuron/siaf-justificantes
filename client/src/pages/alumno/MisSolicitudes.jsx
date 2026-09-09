@@ -36,7 +36,7 @@ export default function MisSolicitudes() {
     <div className="wrap">
       <div className="fila fila-sep">
         <h1>Mis solicitudes</h1>
-        <Link className="btn sec" to="/solicitar">Nueva solicitud</Link>
+        <Link className="btn sec" to="/solicitar/acceso">Nueva solicitud</Link>
       </div>
       {err && <div className="aviso error">{err}</div>}
       {!filas ? <p>Cargando…</p> : filas.length === 0 ? (

@@ -14,7 +14,7 @@ export default function Inicio() {
           <h2>Para alumnos</h2>
           <p>Solicita un justificante con tu correo institucional <code>@umich.mx</code>.</p>
           <div className="fila">
-            <Link className="btn" to="/solicitar">Solicitar justificante</Link>
+            <Link className="btn" to="/solicitar/acceso">Solicitar justificante</Link>
             <Link className="btn sec" to="/mis-solicitudes">Ver mis solicitudes</Link>
           </div>
         </div>
