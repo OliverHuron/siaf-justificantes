@@ -1,34 +1,41 @@
 'use strict';
 
 const db = require('../db');
-const { diaSemanaIso } = require('./dias');
+const { semestreNum } = require('./expediente');
+
+const EMAIL_RE = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$";
 
 /**
- * Resuelve los profesores a notificar para una solicitud (PLAN §4):
- * cruza (semestres, secciones, días de la semana de las fechas) contra
- * la tabla `horarios` del ciclo activo.
+ * Resuelve los profesores a notificar para una solicitud, cruzando
+ * (semestre, sección) del grupo contra `profesores_asignatura`.
+ *
+ * Solo devuelve las filas que EXISTEN en la tabla y traen un correo válido:
+ * si de todas las materias del grupo algunas no tienen profesor asignado o
+ * no proporcionaron correo, simplemente no se incluyen (no se aborta el envío).
  *
  * @returns {Promise<Array<{materia, profesor_nombre, profesor_correo, dias:number[]}>>}
  */
-async function resolverProfesores({ semestres, secciones, fechas }) {
-  const cfg = await db.query(`SELECT valor FROM config WHERE clave = 'ciclo_activo'`);
-  const ciclo = (cfg.rows[0] && String(cfg.rows[0].valor).replace(/"/g, '')) || String(new Date().getFullYear());
-
-  const dias = [...new Set((fechas || []).map((f) => diaSemanaIso(f)))];
-  if (!dias.length || !semestres.length || !secciones.length) return [];
+async function resolverProfesores({ semestres, secciones }) {
+  const sems = [...new Set(
+    (semestres || []).map((x) => Number(semestreNum(x))).filter((n) => Number.isInteger(n) && n > 0)
+  )];
+  const secs = [...new Set(
+    (secciones || []).map((x) => Number(x)).filter((n) => Number.isInteger(n) && n > 0)
+  )];
+  if (!sems.length || !secs.length) return [];
 
   const r = await db.query(
-    `SELECT materia, profesor_nombre, lower(profesor_correo) AS profesor_correo,
-            array_agg(DISTINCT dia_semana ORDER BY dia_semana) AS dias
-       FROM horarios
-      WHERE activo
-        AND ciclo_escolar = $1
-        AND semestre = ANY($2::text[])
-        AND seccion  = ANY($3::text[])
-        AND dia_semana = ANY($4::int[])
-      GROUP BY materia, profesor_nombre, lower(profesor_correo)
+    `SELECT materia,
+            trim(concat_ws(' ', prof_asig_nombre, prof_asig_ape_pate, prof_asig_ape_mate)) AS profesor_nombre,
+            lower(correo) AS profesor_correo,
+            '{}'::int[] AS dias
+       FROM profesores_asignatura
+      WHERE sem = ANY($1::int[])
+        AND secc = ANY($2::int[])
+        AND correo ~* $3
+      GROUP BY 1, 2, 3
       ORDER BY materia`,
-    [ciclo, semestres, secciones, dias]
+    [sems, secs, EMAIL_RE]
   );
   return r.rows;
 }

@@ -88,8 +88,11 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
   `prof_asig_ape_pate`, `prof_asig_ape_mate`, `correo`, `materia`, `sem`, `secc`),
   índice único por `(lower(correo), lower(materia), sem, secc)`. Sin datos salvo
   un registro de ejemplo (Oliver Otoniel Virrueta Montero · CONTABILIDAD I · 1° · Secc 45).
-- Pendiente: cargar el padrón real (CSV) y engancharlo a la resolución de
-  profesores al aprobar (hoy `/aprobar` aprueba sin notificar si no hay lista).
+- ✅ `resolverProfesores` (lib/horarios.js) ahora cruza (sem, secc) del grupo
+  contra `profesores_asignatura` y devuelve **solo las filas con correo válido**;
+  al aprobar se notifica a esas materias y se ignoran las que no tienen profesor
+  o correo, sin abortar el envío. Verificado: sem 1 · Secc 45 → 1 profesor.
+- Pendiente: cargar el padrón real (CSV) por Configuración.
 
 **Hecho en la sesión del 2026-09-09 (6ª parte)** — expediente del personal como modal:
 - ✅ `SolicitudDetalle` (página) → **`ExpedienteModal`** sobre la bandeja. La ruta
