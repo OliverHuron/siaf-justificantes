@@ -83,6 +83,14 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 - ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
 - ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
 
+**Hecho en la sesión del 2026-09-09 (7ª parte)** — padrón de profesores:
+- ✅ Migración **006**: tabla `profesores_asignatura` (`prof_asig_nombre`,
+  `prof_asig_ape_pate`, `prof_asig_ape_mate`, `correo`, `materia`, `sem`, `secc`),
+  índice único por `(lower(correo), lower(materia), sem, secc)`. Sin datos salvo
+  un registro de ejemplo (Oliver Otoniel Virrueta Montero · CONTABILIDAD I · 1° · Secc 45).
+- Pendiente: cargar el padrón real (CSV) y engancharlo a la resolución de
+  profesores al aprobar (hoy `/aprobar` aprueba sin notificar si no hay lista).
+
 **Hecho en la sesión del 2026-09-09 (6ª parte)** — expediente del personal como modal:
 - ✅ `SolicitudDetalle` (página) → **`ExpedienteModal`** sobre la bandeja. La ruta
   `/staff/solicitud/:id` renderiza `<Bandeja/>` + el modal; cerrar → `/staff/bandeja`.
