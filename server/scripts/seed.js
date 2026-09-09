@@ -87,7 +87,8 @@ const CONFIG_DEFAULT = [
   ['folio', JSON.stringify({ prefijo: 'F', reinicia_por_anio: true })],
   ['reglas', JSON.stringify({
     pendientes_max: config.reglas.pendientesMax,
-    dias_limite_solicitud: config.reglas.diasLimiteSolicitud,
+    dias_limite_solicitud: config.reglas.diasLimiteSolicitud, // días hábiles desde la reincorporación
+    dias_maximos: 15, // tope de días por solicitud
     dias_habiles: true,
   })],
   ['smtp', JSON.stringify({
@@ -100,6 +101,7 @@ const CONFIG_DEFAULT = [
       'Privacidad. La UMSNH es responsable de su tratamiento.',
     form_dominio_rechazado:
       'Solo se aceptan correos institucionales que terminen en @umich.mx.',
+    reglamento_url: 'https://www.siia.umich.mx/escolar/Normatividad/examenes/CapituloI.htm',
   })],
   ['feriados', JSON.stringify([])], // ['2026-09-16', ...] — días no hábiles adicionales
 ];

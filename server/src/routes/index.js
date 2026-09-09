@@ -16,6 +16,7 @@ const horarios = require('./horarios');
 const usuarios = require('./usuarios');
 const consolidado = require('./consolidado');
 const enfermeria = require('./enfermeria');
+const expediente = require('./expediente');
 
 const router = express.Router();
 
@@ -33,5 +34,6 @@ router.use('/horarios', horarios);
 router.use('/usuarios', usuarios);
 router.use('/consolidado', consolidado);
 router.use('/enfermeria', enfermeria);
+router.use('/expediente', expediente);
 
 module.exports = router;

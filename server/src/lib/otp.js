@@ -6,7 +6,7 @@ const config = require('../config');
 const { ApiError } = require('../middleware/error');
 const mailer = require('./mailer');
 
-const LIM_POR_CORREO_HORA = 3;
+const LIM_POR_CORREO_HORA = 10;
 const LIM_POR_IP_HORA = 10;
 
 function normEmail(email) {

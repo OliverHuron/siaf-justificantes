@@ -1,7 +1,7 @@
 'use strict';
 
 const db = require('../db');
-const { diasHabilesEntre, iso } = require('./dias');
+const { diasHabilesEntre, siguienteDiaHabil, diasNaturales, iso } = require('./dias');
 
 const MATRICULA_RE = /^\d{7}[A-Za-z]$/; // 7 dígitos + letra (formato observado)
 
@@ -9,26 +9,35 @@ const MATRICULA_RE = /^\d{7}[A-Za-z]$/; // 7 dígitos + letra (formato observado
  * Calcula las banderas de una solicitud recién enviada. No bloquea; solo
  * marca lo que la encargada debe mirar con atención (PLAN §8).
  *
- * @param {object} s  { matricula, tipo, fechas: string[], semestres, secciones }
- * @param {object} reglas  { diasLimite }
+ * @param {object} s  { matricula, tipo, fechas: string[], semestres, secciones, fecha_inicio, fecha_fin }
+ * @param {object} reglas  { diasLimite, diasMaximos, exento, feriados }
  * @returns {object} banderas -> { clave: {detalle} }
  */
-async function calcular(s, reglas) {
+async function calcular(s, reglas = {}) {
   const banderas = {};
   const fechas = (s.fechas || []).map((f) => String(f).slice(0, 10));
-  const exentoVentana = s.tipo === 'caso_especial' || s.tipo === 'enfermeria_fcca';
+  const exento = reglas.exento || s.tipo === 'caso_especial' || s.tipo === 'enfermeria_fcca';
 
-  // fuera_de_ventana: alguna fecha excede el límite de días hábiles (sin feriados)
-  if (!exentoVentana) {
-    let feriados = [];
+  let feriados = reglas.feriados;
+  if (!Array.isArray(feriados)) {
     try {
       const r = await db.query(`SELECT valor FROM config WHERE clave = 'feriados'`);
-      if (Array.isArray(r.rows[0] && r.rows[0].valor)) feriados = r.rows[0].valor;
-    } catch (_) { /* sin config de feriados */ }
+      feriados = Array.isArray(r.rows[0] && r.rows[0].valor) ? r.rows[0].valor : [];
+    } catch (_) { feriados = []; }
+  }
+
+  if (!exento && s.fecha_inicio && s.fecha_fin) {
     const hoy = iso(new Date());
-    const excedidas = fechas.filter((f) => diasHabilesEntre(f, hoy, feriados) > reglas.diasLimite);
-    if (excedidas.length) {
-      banderas.fuera_de_ventana = { fechas: excedidas, limite: reglas.diasLimite };
+    // fuera_de_ventana: pasaron más de N días hábiles desde la reincorporación
+    const reincorporacion = siguienteDiaHabil(s.fecha_fin, feriados);
+    const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados);
+    if (reglas.diasLimite && transcurridos > reglas.diasLimite) {
+      banderas.fuera_de_ventana = { reincorporacion, transcurridos, limite: reglas.diasLimite };
+    }
+    // excede_maximo: el rango supera el tope de días
+    const total = diasNaturales(s.fecha_inicio, s.fecha_fin);
+    if (reglas.diasMaximos && total > reglas.diasMaximos) {
+      banderas.excede_maximo = { total, maximo: reglas.diasMaximos };
     }
   }
 

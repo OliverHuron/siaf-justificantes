@@ -340,6 +340,60 @@ tr.clic:hover { background: var(--navy-ghost); }
 .login2-volver { text-align: center; font-size: 13px; color: var(--lg-500); }
 .login2-volver:hover { color: var(--lb-primary); }
 
+/* ---------- formulario de solicitud (secciones con header navy) ---------- */
+.form-just { max-width: 1180px; }
+.sec-panel {
+  background: #fff; border: 1px solid var(--borde); border-radius: 12px;
+  padding: 16px 20px 20px; margin-bottom: 18px;
+}
+.sec-head-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.sec-head {
+  display: inline-block; background: var(--navy); color: #fff;
+  font-weight: 800; font-size: .82rem; letter-spacing: .04em;
+  padding: 8px 16px; border-radius: 9px; margin-bottom: 6px;
+}
+.sec-link { font-size: .82rem; color: var(--azul); }
+
+.fechas-grid { display: grid; grid-template-columns: 320px 1fr; gap: 22px; align-items: start; }
+@media (max-width: 720px) { .fechas-grid { grid-template-columns: 1fr; } }
+.fechas-cards { display: flex; flex-direction: column; gap: 12px; max-width: 380px; }
+.fc { border: 1px solid var(--borde); border-radius: 10px; padding: 12px 14px; background: #f8fafc; }
+.fc-rot { font-size: .72rem; font-weight: 800; letter-spacing: .04em; color: var(--navy); }
+.fc-val { font-size: 1.05rem; font-weight: 700; margin-top: 3px; }
+.fc-total { background: #fff7ed; border-color: #fdba74; }
+.fc-total .fc-val { color: #b45309; }
+
+.exp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 14px; }
+.exp-card { border: 1px solid var(--borde); border-radius: 10px; padding: 11px 14px; background: #f8fafc; }
+.exp-card .exp-rot { font-size: .7rem; font-weight: 800; letter-spacing: .04em; color: var(--navy); }
+.exp-card .exp-val { font-size: .95rem; font-weight: 600; margin-top: 2px; word-break: break-word; }
+
+.btn-enviar {
+  width: 100%; padding: 14px; margin-top: 4px;
+  background: var(--navy); border-color: var(--navy);
+  font-size: 1rem; font-weight: 700; border-radius: 10px;
+}
+.btn-enviar:hover { background: var(--navy-2); }
+
+/* calendario de rango */
+.rc { border: 1px solid var(--borde); border-radius: 10px; padding: 12px; width: 320px; max-width: 100%; background: #fff; }
+.rc-head { display: flex; justify-content: space-between; align-items: center; font-weight: 700; margin-bottom: 8px; }
+.rc-head button { padding: 2px 10px; background: #fff; color: var(--navy); border-color: var(--borde); }
+.rc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.rc-dow { text-align: center; font-size: .68rem; color: var(--gris); font-weight: 700; padding: 2px 0; }
+.rc-day {
+  text-align: center; padding: 7px 0; border-radius: 7px; cursor: pointer; font-size: .84rem;
+  -webkit-user-select: none; user-select: none;
+}
+.rc-day:hover:not(.no):not(.off) { background: var(--gris-suave); }
+.rc-day.off { visibility: hidden; }
+.rc-day.no { color: #cbd5e1; cursor: not-allowed; }
+.rc-day.feriado { text-decoration: line-through; }
+.rc-day.rango { background: var(--navy-ghost); border-radius: 0; }
+.rc-day.ini { background: var(--navy); color: #fff; border-radius: 7px 0 0 7px; }
+.rc-day.fin { background: var(--navy); color: #fff; border-radius: 0 7px 7px 0; }
+.rc-day.ini.fin { border-radius: 7px; }
+
 /* código OTP en cuadros */
 .otp { display: flex; gap: 8px; margin-top: 6px; }
 .otp-box {

@@ -83,12 +83,27 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 - ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
 - ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
 
+**Hecho en la sesión del 2026-09-09** — formulario de solicitud rediseñado:
+- ✅ Layout por secciones con headers navy (FECHAS / EXPEDIENTE / MOTIVO Y COMPROBANTES),
+  calendario de **rango** (inicio→fin) con tarjetas Inicio/Fin/Total.
+- ✅ **Expediente automático**: tabla `grupos` (licenciatura/turno/salón/modalidad/periodo
+  por semestre+sección) + `scripts/sync-fcca.js` (`npm run sync:fcca`, porta el scraper
+  Python de `Desktop/ObtenerHorarios` a Node/cheerio) + `GET /api/expediente`. La matrícula
+  se deriva del correo (`#######L@umich.mx`).
+- ✅ **Motivo**: Tipo (Médico / Caso especial) + Origen (Privada → receta+ticket;
+  Institución pública → receta). Enfermería se omite (tendrá panel propio).
+- ✅ **Reglas de fecha** (no aplican a caso especial): tope 15 días por solicitud +
+  `10 días hábiles` desde la reincorporación (`siguienteDiaHabil(fecha_fin)`); banderas
+  `fuera_de_ventana` y `excede_maximo`.
+- ✅ Enlace al Reglamento (`siia.umich.mx/.../CapituloI.htm`), en `config.textos.reglamento_url`.
+- Pendiente: correr `npm run sync:fcca` completo (quedaron ~80/205 grupos de la prueba).
+
 **Fase 2 restante** (ver `PLAN.md §13`)
 - Consolidado en PDF (hoy es tabla imprimible con `window.print()`).
 - TOTP (segundo factor) para `encargada` y `supervisor`.
 
 **Fase 3**
-- Sustituir el CRUD manual de `horarios` por la BD/exportación institucional.
+- `sync:fcca` por cron para refrescar `grupos`.
 - SSO institucional (OAuth en producción) + autollenado de nombre/matrícula, reemplazando
   el OTP.
 

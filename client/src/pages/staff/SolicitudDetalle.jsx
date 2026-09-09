@@ -81,10 +81,20 @@ export default function SolicitudDetalle() {
             <h2>Datos</h2>
             <table>
               <tbody>
+                <tr><th>Matrícula</th><td className="mono">{s.matricula_declarada}</td></tr>
                 <tr><th>Semestre(s)</th><td>{s.semestres?.join(', ')}</td></tr>
                 <tr><th>Sección(es)</th><td>{s.secciones?.join(', ')}</td></tr>
-                <tr><th>Días</th><td className="mono">{s.fechas?.join(', ')}</td></tr>
-                <tr><th>Origen</th><td>{s.origen}</td></tr>
+                {(s.licenciatura || s.turno || s.salon || s.modalidad) && (
+                  <tr><th>Expediente</th><td>
+                    {[s.licenciatura, s.turno, s.salon, s.modalidad].filter(Boolean).join(' · ')}
+                    {s.periodo ? ` (${s.periodo})` : ''}
+                  </td></tr>
+                )}
+                {s.fecha_inicio && s.fecha_fin && (
+                  <tr><th>Rango</th><td className="mono">{s.fecha_inicio} → {s.fecha_fin}</td></tr>
+                )}
+                <tr><th>Días hábiles</th><td className="mono">{s.fechas?.join(', ')}</td></tr>
+                <tr><th>Origen atención</th><td>{s.origen_atencion || '—'}</td></tr>
                 <tr><th>Enviada</th><td>{new Date(s.creado_en).toLocaleString()}</td></tr>
                 {s.contexto_extra && <tr><th>Contexto</th><td>{s.contexto_extra}</td></tr>}
                 {s.folio && <tr><th>Folio</th><td className="mono">{s.folio}</td></tr>}

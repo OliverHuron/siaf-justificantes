@@ -84,6 +84,38 @@ function diaSemanaIso(fechaIso) {
   return g === 0 ? 7 : g;
 }
 
+/** Días naturales inclusivos entre dos fechas ISO (inicio y fin incluidos). */
+function diasNaturales(inicio, fin) {
+  const a = aFecha(inicio);
+  const b = aFecha(fin);
+  if (b < a) return 0;
+  return Math.round((b - a) / 86400000) + 1;
+}
+
+/** Lista de fechas hábiles (lun–vie, sin feriados) dentro de [inicio, fin] inclusive. */
+function expandirRangoHabil(inicio, fin, feriados) {
+  const fer = feriados instanceof Set ? feriados : new Set(feriados || []);
+  const out = [];
+  const cur = aFecha(inicio);
+  const b = aFecha(fin);
+  while (cur <= b) {
+    const s = iso(cur);
+    if (!esFinDeSemana(cur) && !fer.has(s)) out.push(s);
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+  return out;
+}
+
+/** Siguiente día hábil ESTRICTAMENTE posterior a `fechaIso` (salta finde y feriados). */
+function siguienteDiaHabil(fechaIso, feriados) {
+  const fer = feriados instanceof Set ? feriados : new Set(feriados || []);
+  const cur = aFecha(fechaIso);
+  do {
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  } while (esFinDeSemana(cur) || fer.has(iso(cur)));
+  return iso(cur);
+}
+
 /** "Morelia, Michoacán, a 24 de agosto de 2026" para la fecha dada (hoy por defecto). */
 function fechaOficio(d = new Date()) {
   return `Morelia, Michoacán, a ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
@@ -91,4 +123,5 @@ function fechaOficio(d = new Date()) {
 
 module.exports = {
   MESES, diasHabilesEntre, dentroDeVentana, textoDias, diaSemanaIso, fechaOficio, iso, aFecha,
+  diasNaturales, expandirRangoHabil, siguienteDiaHabil,
 };

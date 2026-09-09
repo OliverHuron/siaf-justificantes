@@ -6,11 +6,34 @@ const config = require('../config');
 const { ApiError } = require('../middleware/error');
 const { requireAlumno } = require('../middleware/auth');
 const { upload, relativaDeMulter, borrarArchivo } = require('../lib/storage');
-const { TIPOS } = require('../lib/tipos');
 const banderas = require('../lib/banderas');
 const bitacora = require('../lib/bitacora');
 const { token } = require('../lib/crypto');
-const { textoDias } = require('../lib/dias');
+const {
+  textoDias, diasNaturales, expandirRangoHabil, siguienteDiaHabil, diasHabilesEntre, iso,
+} = require('../lib/dias');
+const { resolverExpediente, matriculaDeCorreo } = require('../lib/expediente');
+
+/**
+ * Traduce (tipo de la UI, origen de atención) al `tipo` canónico + adjuntos requeridos.
+ * medico+privada → receta_particular (receta+ticket)
+ * medico+institucion_publica → receta_imss (receta)
+ * caso_especial → caso_especial (documento_medico), exento de reglas de fecha
+ */
+function resolverMotivo(tipoUi, origen) {
+  if (tipoUi === 'caso_especial') {
+    return { tipo: 'caso_especial', origen_atencion: null, adjuntos: ['documento_medico'], exento: true };
+  }
+  if (tipoUi === 'medico') {
+    if (origen === 'privada') {
+      return { tipo: 'receta_particular', origen_atencion: 'privada', adjuntos: ['receta', 'ticket'], exento: false };
+    }
+    if (origen === 'institucion_publica') {
+      return { tipo: 'receta_imss', origen_atencion: 'institucion_publica', adjuntos: ['receta'], exento: false };
+    }
+  }
+  return null;
+}
 
 const router = express.Router();
 
@@ -42,8 +65,9 @@ const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
  * POST /api/solicitudes   (multipart)  — crea y envía en un paso.
- * Campos: nombre, matricula, semestres[], secciones[], tipo, fechas[], contexto_extra
- * Archivos: según TIPOS[tipo].adjuntos
+ * Campos: nombre, tipo (medico|caso_especial), origen (privada|institucion_publica),
+ *         semestres[], secciones[], fecha_inicio, fecha_fin, contexto_extra
+ * Archivos: receta / ticket / documento_medico según corresponda.
  */
 router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, next) => {
   const files = req.files || {};
@@ -51,31 +75,59 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
     const email = req.alumno.email;
     const b = req.body || {};
     const nombre = String(b.nombre || '').trim();
-    const matricula = String(b.matricula || '').trim();
-    const tipo = String(b.tipo || '').trim();
+    const tipoUi = String(b.tipo || '').trim();
+    const origen = String(b.origen || '').trim() || null;
     const semestres = parseLista(b.semestres);
     const secciones = parseLista(b.secciones);
-    const fechas = parseLista(b.fechas);
+    const fechaInicio = String(b.fecha_inicio || '').slice(0, 10);
+    const fechaFin = String(b.fecha_fin || '').slice(0, 10);
     const contextoExtra = String(b.contexto_extra || '').trim() || null;
 
-    if (!nombre) throw new ApiError(400, 'El nombre completo es obligatorio');
-    if (!matricula) throw new ApiError(400, 'La matrícula es obligatoria');
-    if (!TIPOS[tipo]) throw new ApiError(400, 'Tipo de solicitud inválido');
-    if (TIPOS[tipo].origen !== 'alumno') {
-      throw new ApiError(400, 'Ese tipo de justificante no se solicita por este medio');
+    // Matrícula desde el correo institucional
+    const matricula = matriculaDeCorreo(email);
+    if (!matricula) {
+      throw new ApiError(400, 'Tu correo institucional no tiene el formato de matrícula (#######L@umich.mx)');
     }
+
+    if (!nombre) throw new ApiError(400, 'El nombre completo es obligatorio');
+    const motivo = resolverMotivo(tipoUi, origen);
+    if (!motivo) throw new ApiError(400, 'Selecciona el tipo de justificante y el origen de atención');
     if (!semestres.length) throw new ApiError(400, 'Selecciona al menos un semestre');
     if (!secciones.length) throw new ApiError(400, 'Selecciona al menos una sección');
-    if (!fechas.length) throw new ApiError(400, 'Marca al menos un día a justificar');
-    if (!fechas.every((f) => FECHA_RE.test(f))) throw new ApiError(400, 'Formato de fecha inválido');
-
-    const hoy = new Date().toISOString().slice(0, 10);
-    if (fechas.some((f) => f > hoy)) {
-      throw new ApiError(400, 'No puedes justificar días que aún no ocurren');
+    if (!FECHA_RE.test(fechaInicio) || !FECHA_RE.test(fechaFin)) {
+      throw new ApiError(400, 'Indica la fecha de inicio y de fin');
     }
 
-    // Adjuntos obligatorios por tipo
-    for (const campo of TIPOS[tipo].adjuntos) {
+    const hoy = iso(new Date());
+    if (fechaInicio > fechaFin) throw new ApiError(400, 'La fecha de inicio no puede ser posterior a la de fin');
+    if (fechaFin > hoy) throw new ApiError(400, 'No puedes justificar días que aún no ocurren');
+
+    // Reglas y feriados de configuración
+    const cfg = await db.query(`SELECT clave, valor FROM config WHERE clave IN ('reglas','feriados')`);
+    const conf = Object.fromEntries(cfg.rows.map((r) => [r.clave, r.valor]));
+    const feriados = Array.isArray(conf.feriados) ? conf.feriados : [];
+    const diasMaximos = (conf.reglas && conf.reglas.dias_maximos) || 15;
+    const diasLimite = (conf.reglas && conf.reglas.dias_limite_solicitud) || config.reglas.diasLimiteSolicitud;
+    const pendientesMax = (conf.reglas && conf.reglas.pendientes_max) || config.reglas.pendientesMax;
+
+    const totalDias = diasNaturales(fechaInicio, fechaFin);
+    const fechasHabiles = expandirRangoHabil(fechaInicio, fechaFin, feriados);
+    if (!fechasHabiles.length) throw new ApiError(400, 'El rango seleccionado no incluye días hábiles');
+
+    if (!motivo.exento) {
+      if (totalDias > diasMaximos) {
+        throw new ApiError(400, `Solo se pueden justificar hasta ${diasMaximos} días por solicitud (seleccionaste ${totalDias}).`);
+      }
+      const reincorporacion = siguienteDiaHabil(fechaFin, feriados);
+      const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados);
+      if (transcurridos > diasLimite) {
+        throw new ApiError(409,
+          `Fuera de plazo: desde tu reincorporación (${reincorporacion}) ya pasaron ${transcurridos} días hábiles (máx. ${diasLimite}).`);
+      }
+    }
+
+    // Adjuntos obligatorios
+    for (const campo of motivo.adjuntos) {
       if (!files[campo] || !files[campo][0]) {
         throw new ApiError(400, `Falta el archivo obligatorio: ${campo}`);
       }
@@ -87,31 +139,40 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
         WHERE estado = 'pendiente' AND (lower(email_alumno) = lower($1) OR upper(matricula_declarada) = upper($2))`,
       [email, matricula]
     );
-    if (pend.rows[0].n >= config.reglas.pendientesMax) {
-      throw new ApiError(
-        409,
-        `Ya tienes ${config.reglas.pendientesMax} solicitudes pendientes. Espera a que se resuelvan.`
-      );
+    if (pend.rows[0].n >= pendientesMax) {
+      throw new ApiError(409, `Ya tienes ${pendientesMax} solicitudes pendientes. Espera a que se resuelvan.`);
     }
 
-    const fechasOrdenadas = [...new Set(fechas)].sort();
+    // Expediente académico (snapshot) del grupo primario
+    const exp = await resolverExpediente(semestres[0], secciones[0]).catch(() => ({ encontrado: false }));
+
+    const tipo = motivo.tipo;
+    const fechasOrdenadas = fechasHabiles;
     const tokSeg = token(24);
     const flags = await banderas.calcular(
-      { matricula, tipo, fechas: fechasOrdenadas, semestres, secciones },
-      { diasLimite: config.reglas.diasLimiteSolicitud }
+      { matricula, tipo, fechas: fechasOrdenadas, semestres, secciones, fecha_inicio: fechaInicio, fecha_fin: fechaFin },
+      { diasLimite, diasMaximos, exento: motivo.exento, feriados }
     );
 
     const creada = await db.withTransaction(async (client) => {
       const ins = await client.query(
         `INSERT INTO solicitudes
            (origen, email_alumno, nombre_declarado, matricula_declarada, semestres, secciones,
-            tipo, fechas, contexto_extra, dias_texto_oficio, estado, token_seguimiento,
-            banderas, ip_solicitud, enviado_en)
-         VALUES ('alumno',$1,$2,$3,$4,$5,$6,$7::date[],$8,$9,'pendiente',$10,$11::jsonb,$12, now())
+            tipo, origen_atencion, fechas, fecha_inicio, fecha_fin, contexto_extra,
+            dias_texto_oficio, licenciatura, turno, salon, modalidad, periodo,
+            estado, token_seguimiento, banderas, ip_solicitud, enviado_en)
+         VALUES ('alumno',$1,$2,$3,$4,$5,$6,$7,$8::date[],$9,$10,$11,$12,$13,$14,$15,$16,$17,
+                 'pendiente',$18,$19::jsonb,$20, now())
          RETURNING id, token_seguimiento, creado_en`,
         [
-          email, nombre, matricula, semestres, secciones, tipo, fechasOrdenadas,
-          contextoExtra, textoDias(fechasOrdenadas), tokSeg, JSON.stringify(flags), req.ip,
+          email, nombre, matricula, semestres, secciones, tipo, motivo.origen_atencion,
+          fechasOrdenadas, fechaInicio, fechaFin, contextoExtra, textoDias(fechasOrdenadas),
+          exp.encontrado ? exp.licenciatura : null,
+          exp.encontrado ? exp.turno : null,
+          exp.encontrado ? exp.salon : null,
+          exp.encontrado ? exp.modalidad : null,
+          exp.encontrado ? exp.periodo : null,
+          tokSeg, JSON.stringify(flags), req.ip,
         ]
       );
       const solicitud = ins.rows[0];
@@ -188,8 +249,8 @@ router.post('/:id/adjuntos', requireAlumno, upload.single('archivo'), async (req
 router.get('/mias', requireAlumno, async (req, res, next) => {
   try {
     const r = await db.query(
-      `SELECT id, tipo, estado, estado_triage, semestres, secciones, fechas,
-              token_seguimiento, creado_en, decidido_en, motivo_rechazo
+      `SELECT id, tipo, origen_atencion, estado, estado_triage, semestres, secciones,
+              fechas, fecha_inicio, fecha_fin, token_seguimiento, creado_en, decidido_en, motivo_rechazo
          FROM solicitudes
         WHERE lower(email_alumno) = lower($1)
         ORDER BY creado_en DESC`,
