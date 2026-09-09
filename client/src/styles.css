@@ -421,8 +421,8 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 }
 .modal-prev-body:active { cursor: grabbing; }
 .modal-prev-frame {
-  position: absolute; top: 24px; left: 50%; margin-left: -408px;
-  width: 816px; height: 1056px; border: 0; background: #fff;
+  position: absolute; top: 24px; left: 50%;
+  border: 0; background: #fff; overflow: hidden;
   transform-origin: 50% 0; pointer-events: none;
   box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
 }

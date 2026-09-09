@@ -416,7 +416,21 @@ function OficioPreview({ id, dias, plantillaId, frase, onClose }) {
   const [err, setErr] = useState('');
   const [z, setZ] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [dims, setDims] = useState({ w: 816, h: 1056 });
   const drag = useRef(null);
+  const frameRef = useRef(null);
+
+  function ajustarAlto() {
+    try {
+      const doc = frameRef.current && frameRef.current.contentDocument;
+      if (!doc) return;
+      const el = doc.documentElement;
+      const b = doc.body;
+      const h = Math.max(el.scrollHeight, b ? b.scrollHeight : 0, el.offsetHeight);
+      const w = Math.max(el.scrollWidth, b ? b.scrollWidth : 0, el.offsetWidth);
+      if (h > 100) setDims({ w: w || 816, h });
+    } catch { /* origen opaco: se queda con el tamaño por defecto */ }
+  }
 
   useEffect(() => {
     let obj;
@@ -468,8 +482,12 @@ function OficioPreview({ id, dias, plantillaId, frase, onClose }) {
           ) : !src ? (
             <p style={{ padding: 24, color: '#e2e8f0' }}>Generando…</p>
           ) : (
-            <iframe title="Oficio" src={src} className="modal-prev-frame"
-              style={{ transform: `translate(${pos.x}px, ${pos.y}px) scale(${z})` }} />
+            <iframe ref={frameRef} title="Oficio" src={src} scrolling="no"
+              className="modal-prev-frame" onLoad={ajustarAlto}
+              style={{
+                width: dims.w, height: dims.h, marginLeft: -dims.w / 2,
+                transform: `translate(${pos.x}px, ${pos.y}px) scale(${z})`,
+              }} />
           )}
         </div>
         <div className="modal-prev-foot">
