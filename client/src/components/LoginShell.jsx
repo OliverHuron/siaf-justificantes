@@ -1,12 +1,51 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 /**
  * Marco de las pantallas de acceso (estilo InvPatrimonio): panel izquierdo
  * institucional (foto + overlay azul diagonal + escudo + lema) y panel derecho
- * blanco con la tarjeta del formulario (`children`) y el sello SSL.
+ * blanco con el escudo del zorro (que se orienta hacia el cursor) y la tarjeta.
  */
 export default function LoginShell({ children }) {
   const anio = new Date().getFullYear();
+  const zorro = useRef(null);
+
+  useEffect(() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+
+    let raf = 0;
+    let mx = 0;
+    let my = 0;
+    const MAX = 14; // grados de inclinación máx.
+    const RADIO = 420; // px: distancia a la que se alcanza el máximo
+
+    function aplicar() {
+      raf = 0;
+      const el = zorro.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const nx = Math.max(-1, Math.min(1, (mx - cx) / RADIO));
+      const ny = Math.max(-1, Math.min(1, (my - cy) / RADIO));
+      el.style.setProperty('--rx', `${(nx * MAX).toFixed(2)}deg`);   // rotateY
+      el.style.setProperty('--ry', `${(-ny * MAX).toFixed(2)}deg`);  // rotateX
+      el.style.setProperty('--tx', `${(nx * 3).toFixed(2)}px`);
+      el.style.setProperty('--ty', `${(ny * 3).toFixed(2)}px`);
+    }
+    function onMove(e) {
+      mx = e.clientX;
+      my = e.clientY;
+      if (!raf) raf = requestAnimationFrame(aplicar);
+    }
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <div className="login2">
       <aside className="login2-brand">
@@ -38,7 +77,10 @@ export default function LoginShell({ children }) {
 
       <section className="login2-panel">
         <div className="login2-right-inner">
-          <img src="/zorro.png" alt="" className="login2-zorro" />
+          <div className="login2-zorro" ref={zorro} aria-hidden="true">
+            <img src="/zorro.png" alt="" />
+          </div>
+
           <div className="login2-card">{children}</div>
 
           <div className="login2-ssl">

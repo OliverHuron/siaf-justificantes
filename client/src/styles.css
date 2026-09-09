@@ -191,9 +191,20 @@ tr.clic:hover { background: var(--navy-ghost); }
   display: flex; flex-direction: column; gap: 24px;
 }
 .login2-zorro {
-  width: 84px; height: 84px; object-fit: contain;
-  align-self: center; margin-bottom: -8px;
-  filter: drop-shadow(0 4px 10px rgba(14, 58, 112, 0.18));
+  align-self: center; margin-bottom: -12px;
+  width: 158px; height: 158px;
+  perspective: 520px;
+}
+.login2-zorro img {
+  display: block; width: 100%; height: 100%; object-fit: contain;
+  transform: translate(var(--tx, 0px), var(--ty, 0px))
+             rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg));
+  transition: transform .18s ease-out;
+  filter: drop-shadow(0 6px 16px rgba(14, 58, 112, 0.22));
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .login2-zorro img { transform: none; transition: none; }
 }
 
 .login2-card {
