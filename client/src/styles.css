@@ -526,6 +526,27 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 .dc-day.pedido { color: var(--texto); cursor: pointer; border: 1px dashed var(--navy-2); }
 .dc-day.aprob { background: var(--navy); color: #fff; border: 1px solid var(--navy); cursor: pointer; }
 
+/* filtro de fecha (bandeja): calendario desplegable */
+.filtro-fecha { position: relative; display: inline-flex; }
+.filtro-fecha > button { white-space: nowrap; }
+.filtro-fecha-pop {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+  background: #fff; border: 1px solid var(--borde); border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .18); padding: 12px;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+/* badges sobrios (misma paleta) para licenciatura / turno / salón / modalidad */
+.al-meta-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.mbadge {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-size: .72rem; font-weight: 700; line-height: 1.5;
+}
+.mb-lic { background: var(--navy-ghost); color: var(--navy); }
+.mb-turno { background: var(--ok-bg); color: var(--ok); }
+.mb-salon { background: var(--alerta-bg); color: var(--alerta); }
+.mb-mod { background: #e6ebfb; color: var(--azul); }
+
 /* nota interna en la bandeja: botón-icono + popover */
 .nota-btn {
   display: inline-flex; align-items: center; justify-content: center;

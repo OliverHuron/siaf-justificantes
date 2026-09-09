@@ -42,7 +42,6 @@ export default function StaffLayout() {
         <nav>
           <NavLink to="/staff/bandeja" className={link}><Ic d={I.bandeja} />Bandeja</NavLink>
           <NavLink to="/staff/folios" className={link}><Ic d={I.folios} />Folios</NavLink>
-          <NavLink to="/staff/consolidado" className={link}><Ic d={I.consolidado} />Consolidado</NavLink>
           {esSup && <NavLink to="/staff/configuracion" className={link}><Ic d={I.config} />Configuración</NavLink>}
           <NavLink to="/staff/cuenta" className={link}><Ic d={I.cuenta} />Mi cuenta</NavLink>
         </nav>

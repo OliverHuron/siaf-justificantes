@@ -73,7 +73,7 @@ async function correoAlAlumno(s, { plantilla_clave, motivo, nota, asunto }, extr
 /** GET /api/revision/cola */
 router.get('/cola', puedeLeer, async (req, res, next) => {
   try {
-    const { estado, estado_triage, semestre, seccion, desde, hasta, texto, solo_marcadas } = req.query;
+    const { estado, estado_triage, semestre, seccion, desde, hasta, texto, solo_marcadas, notas } = req.query;
     const cond = [];
     const val = [];
     const p = (v) => { val.push(v); return `$${val.length}`; };
@@ -91,6 +91,8 @@ router.get('/cola', puedeLeer, async (req, res, next) => {
     if (solo_marcadas === 'true' || solo_marcadas === '1') {
       cond.push(`(s.banderas <> '{}'::jsonb OR coalesce(s.recordatorio,'') <> '')`);
     }
+    if (notas === 'con') cond.push(`coalesce(s.recordatorio, '') <> ''`);
+    else if (notas === 'sin') cond.push(`coalesce(s.recordatorio, '') = ''`);
 
     const where = cond.length ? `WHERE ${cond.join(' AND ')}` : '';
     const r = await db.query(

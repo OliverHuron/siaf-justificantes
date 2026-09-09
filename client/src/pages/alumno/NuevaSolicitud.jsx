@@ -314,9 +314,14 @@ export default function NuevaSolicitud() {
               {expCargando ? (
                 <div className="res-v mudo">Consultando expediente…</div>
               ) : exp?.encontrado ? (
-                <div className="res-v mudo">
-                  {[exp.licenciatura_nombre, exp.turno_nombre, exp.salon, exp.modalidad_nombre].filter(Boolean).join(' · ')}
-                </div>
+                <span className="al-meta-badges">
+                  {(exp.licenciatura || exp.licenciatura_nombre) && (
+                    <span className="mbadge mb-lic">{exp.licenciatura || exp.licenciatura_nombre}</span>
+                  )}
+                  {exp.turno_nombre && <span className="mbadge mb-turno">{exp.turno_nombre}</span>}
+                  {exp.salon && <span className="mbadge mb-salon">{exp.salon}</span>}
+                  {exp.modalidad_nombre && <span className="mbadge mb-mod">{exp.modalidad_nombre}</span>}
+                </span>
               ) : (
                 <div className="res-v mudo">La Secretaría verificará el expediente.</div>
               )}

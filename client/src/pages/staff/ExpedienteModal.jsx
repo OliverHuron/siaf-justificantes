@@ -213,18 +213,22 @@ export default function ExpedienteModal() {
                   </div>
 
                   <div className="al-rows">
-                    {grupos.map((g, i) => {
-                      const meta = [g.licenciatura, g.turno, g.salon, g.modalidad].filter(Boolean).join(' · ');
-                      return (
-                        <div className="al-row" key={i}>
-                          <span className="al-k">Grupo</span>
-                          <span className="al-v">
-                            <span className="al-chip">{semLabel(g.semestre)} · Secc {g.seccion}</span>
-                            {meta && <span className="sub">{meta}</span>}
-                          </span>
-                        </div>
-                      );
-                    })}
+                    {grupos.map((g, i) => (
+                      <div className="al-row" key={i}>
+                        <span className="al-k">Grupo</span>
+                        <span className="al-v">
+                          <span className="al-chip">{semLabel(g.semestre)} · Secc {g.seccion}</span>
+                          {(g.licenciatura || g.turno || g.salon || g.modalidad) && (
+                            <span className="al-meta-badges">
+                              {g.licenciatura && <span className="mbadge mb-lic">{g.licenciatura}</span>}
+                              {g.turno && <span className="mbadge mb-turno">{g.turno}</span>}
+                              {g.salon && <span className="mbadge mb-salon">{g.salon}</span>}
+                              {g.modalidad && <span className="mbadge mb-mod">{g.modalidad}</span>}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
                     {grupos.length === 0 && (
                       <div className="al-row">
                         <span className="al-k">Sem / Secc</span>

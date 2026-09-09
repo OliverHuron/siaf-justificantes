@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, apiBlob } from '../../api.js';
+import RangoCalendario from '../../components/RangoCalendario.jsx';
+
+const TODOS_DIAS = [1, 2, 3, 4, 5, 6, 7];
 
 const PILL = {
   pendiente: 'alerta', aprobada: 'ok', rechazada: 'mal',
@@ -81,6 +84,40 @@ function NotaBtn({ texto }) {
   );
 }
 
+/** Filtro por fecha (día o rango) con un calendario desplegable. */
+function FiltroFecha({ value, onChange }) {
+  const [abierto, setAbierto] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!abierto) return undefined;
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setAbierto(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [abierto]);
+
+  const dmy = (s) => (s ? s.split('-').reverse().join('/') : '');
+  const etiqueta = !value.inicio
+    ? 'Fecha: todas'
+    : value.fin && value.fin !== value.inicio
+      ? `${dmy(value.inicio)} a ${dmy(value.fin)}`
+      : dmy(value.inicio);
+
+  return (
+    <span className="filtro-fecha" ref={ref}>
+      <button type="button" className="plano" onClick={() => setAbierto((v) => !v)}>{etiqueta}</button>
+      {abierto && (
+        <div className="filtro-fecha-pop">
+          <RangoCalendario value={value} onChange={onChange} feriados={[]} diasSemana={TODOS_DIAS} />
+          <button type="button" className="sg-link" style={{ marginTop: 4 }}
+            onClick={() => { onChange({ inicio: null, fin: null }); setAbierto(false); }}>
+            Limpiar fecha
+          </button>
+        </div>
+      )}
+    </span>
+  );
+}
+
 /** Botón-icono que abre un adjunto (receta/ticket) en pestaña nueva con el token de staff. */
 function BotonAdjunto({ solicitudId, adjId, clase, titulo }) {
   const [cargando, setCargando] = useState(false);
@@ -109,16 +146,20 @@ export default function Bandeja() {
   const nav = useNavigate();
   const [filas, setFilas] = useState(null);
   const [err, setErr] = useState('');
-  const [filtro, setFiltro] = useState({ estado: 'pendiente', texto: '', solo_marcadas: false });
+  const [filtro, setFiltro] = useState({
+    estado: 'pendiente', texto: '', notas: '', rango: { inicio: null, fin: null },
+  });
 
   function cargar() {
     const q = new URLSearchParams();
     if (filtro.estado) q.set('estado', filtro.estado);
     if (filtro.texto) q.set('texto', filtro.texto);
-    if (filtro.solo_marcadas) q.set('solo_marcadas', 'true');
+    if (filtro.notas) q.set('notas', filtro.notas);
+    if (filtro.rango.inicio) q.set('desde', filtro.rango.inicio);
+    if (filtro.rango.fin || filtro.rango.inicio) q.set('hasta', filtro.rango.fin || filtro.rango.inicio);
     api(`/revision/cola?${q}`).then(setFilas).catch((e) => setErr(e.message));
   }
-  useEffect(cargar, [filtro.estado, filtro.solo_marcadas]);
+  useEffect(cargar, [filtro.estado, filtro.notas, filtro.rango.inicio, filtro.rango.fin]);
 
   return (
     <div>
@@ -133,15 +174,16 @@ export default function Bandeja() {
             <option value="rechazada">Rechazadas</option>
             <option value="requiere_ventanilla">Requieren ventanilla</option>
           </select>
-          <form onSubmit={(e) => { e.preventDefault(); cargar(); }} style={{ flex: 1, minWidth: 180 }}>
+          <select value={filtro.notas} onChange={(e) => setFiltro((f) => ({ ...f, notas: e.target.value }))} style={{ width: 'auto' }}>
+            <option value="">Todas las notas</option>
+            <option value="con">Con nota</option>
+            <option value="sin">Sin nota</option>
+          </select>
+          <FiltroFecha value={filtro.rango} onChange={(rango) => setFiltro((f) => ({ ...f, rango }))} />
+          <form onSubmit={(e) => { e.preventDefault(); cargar(); }} style={{ flex: 1, minWidth: 160 }}>
             <input type="search" placeholder="Nombre o matrícula…" value={filtro.texto}
               onChange={(e) => setFiltro((f) => ({ ...f, texto: e.target.value }))} />
           </form>
-          <label style={{ fontWeight: 400, margin: 0, display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input type="checkbox" style={{ width: 'auto' }} checked={filtro.solo_marcadas}
-              onChange={(e) => setFiltro((f) => ({ ...f, solo_marcadas: e.target.checked }))} />
-            Con banderas/recordatorio
-          </label>
         </div>
       </div>
 
@@ -159,7 +201,7 @@ export default function Bandeja() {
                 <th>Día(s) a justificar</th>
                 <th>Comprobantes</th>
                 <th>Estado</th>
-                <th>Señales</th>
+                <th>Notas</th>
               </tr>
             </thead>
             <tbody>
