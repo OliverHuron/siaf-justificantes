@@ -58,22 +58,31 @@ Horario de prueba sembrado: semestre `primero`, sección `1`, lunes → `Contabi
 (themr.hurongameplay@gmail.com), martes → `Práctica Contable` (oliver2000.oovm@gmail.com).
 Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos correos.
 
-## Qué falta (siguiente sesión)
+## Estado de producción (2026-09-09)
 
-**Cierre de Fase 1**
-1. **SMTP real** — pendiente y con problema conocido: el `.env` tiene
-   `SMTP_USER=2211930x@umich.mx` + App Password, pero Gmail responde
-   `535-5.7.8 BadCredentials`. Causa probable: cuenta de Google **Workspace** de la
-   UMSNH con App Passwords / acceso SMTP deshabilitados por el administrador.
-   Opciones: (a) cuenta `@gmail.com` personal con 2FA + App Password, (b) pedir a
-   TI de la UMSNH habilitar SMTP para una cuenta de servicio, (c) proveedor
-   transaccional (Resend/Brevo/SES). En dev, si el envío falla ya **no bloquea**:
-   el código/correo se escribe en la consola del servidor.
-2. **Primer deploy** en el servidor SIAF: pasos 2–11 de `DEPLOYMENT.md`
-   (crear DB, `.env.siaf-justificantes`, nginx, Cloudflare Tunnel), enganchar el
-   repo al runner self-hosted `siaf`, y confirmar `deploy.yml` + `/api/health`.
-3. **Chromium en el server Linux**: instalar libs (`libnss3`, `libatk-1.0-0`,
-   `libgbm1`, `libasound2`, …) — nota en `DEPLOYMENT.md §1`.
+**Desplegado y en línea: https://justificantes.siafsystem.online** (`/api/health` = OK).
+
+- Servidor `infraestructura` (100.100.81.42), pm2 `siaf-justificantes` (id 2) online,
+  `pm2 save` hecho, `pm2-oliver.service` enabled → sobrevive reboot.
+- **Runner de Actions**: `~/actions-runner-justificantes` registrado (label `siaf`) como
+  servicio systemd `actions.runner.OliverHuron-siaf-justificantes...`. **Cada push a `main`
+  despliega solo** (deploy.yml, verificado en verde).
+- Migraciones 001–006 aplicadas en prod. `npm run seed` corrido una vez (4 cuentas
+  `123456`, catálogos, plantillas). Chrome 153 instalado (`/usr/bin/google-chrome-stable`).
+- nginx: `sites-available/siaf-justificantes` + symlink. Cloudflare: hostname agregado al
+  túnel `119ed31c…` (backup `config.yml.bak.<ts>`).
+
+**Pendiente / avisos:**
+1. **SMTP sin configurar** — `/var/www/.env.siaf-justificantes` tiene placeholders
+   (`SMTP_USER=CAMBIAME@gmail.com`). Sin esto **el alumno no recibe el OTP y no puede
+   entrar**; el personal (password) sí. Arreglo: editar ese archivo con cuenta Gmail +
+   App Password y `pm2 restart siaf-justificantes --update-env`.
+2. **`/run` del servidor estaba al 99%** (containerd `io.containerd.runtime.v2.task` = 374M).
+   Se remontó `/run` a 768M para poder instalar el servicio del runner; **se revierte a
+   382M en reboot**. La app sobrevive un reboot, pero instalar/modificar unidades systemd
+   fallará hasta liberar `/run`. Investigar el containerd.
+3. Rotar el PAT de GitHub y la contraseña SSH (quedaron en el chat de la sesión).
+4. Chromium libs: cubiertas por el `.deb` de google-chrome.
 
 **Hecho en la sesión del 2026-08-31 (2ª parte)** — commits `1e5c414`, `430d360`:
 - ✅ UI de cambio de contraseña del personal (`/staff/cuenta`).
