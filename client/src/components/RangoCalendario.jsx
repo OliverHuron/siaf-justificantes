@@ -6,19 +6,29 @@ const MESES = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+/** nº de día ISO (1 lun … 7 dom) para un año/mes(0-based)/día. */
+const dowIso = (y, m, d) => {
+  const g = new Date(y, m, d).getDay(); // 0 dom … 6 sáb
+  return g === 0 ? 7 : g;
+};
 
 /**
  * Calendario de RANGO: primer clic = inicio, segundo clic = fin.
  * `value` = { inicio: 'YYYY-MM-DD'|null, fin: 'YYYY-MM-DD'|null }.
  * No permite fechas futuras. `feriados` = ['YYYY-MM-DD', ...] (no seleccionables).
+ * `diasSemana` = nº de día ISO hábiles (1 lun … 7 dom); los demás no se pueden
+ * elegir. Def.: lun–vie (modalidad escolarizada).
  */
-export default function RangoCalendario({ value = {}, onChange, feriados = [] }) {
+export default function RangoCalendario({
+  value = {}, onChange, feriados = [], diasSemana = [1, 2, 3, 4, 5],
+}) {
   const hoy = new Date();
   const [ver, setVer] = useState(() => {
     const base = value.inicio ? new Date(value.inicio) : hoy;
     return { y: base.getFullYear(), m: base.getMonth() };
   });
   const fer = new Set(feriados);
+  const habilDow = new Set(diasSemana);
   const hoyIso = iso(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
   const { inicio = null, fin = null } = value;
 
@@ -33,8 +43,8 @@ export default function RangoCalendario({ value = {}, onChange, feriados = [] })
     });
   }
 
-  function clic(s) {
-    if (s > hoyIso || fer.has(s)) return;
+  function clic(s, seleccionable) {
+    if (!seleccionable) return;
     if (!inicio || (inicio && fin)) { onChange({ inicio: s, fin: null }); return; }
     if (s < inicio) { onChange({ inicio: s, fin: null }); return; }
     onChange({ inicio, fin: s });
@@ -47,17 +57,21 @@ export default function RangoCalendario({ value = {}, onChange, feriados = [] })
     const s = iso(ver.y, ver.m, d);
     const futuro = s > hoyIso;
     const feriado = fer.has(s);
+    const habil = habilDow.has(dowIso(ver.y, ver.m, d)) && !feriado;
+    const seleccionable = habil && !futuro;
     const enRango = inicio && s >= inicio && s <= finEfectivo;
     const cls = [
       'rc-day',
-      futuro || feriado ? 'no' : '',
+      !seleccionable ? 'no' : '',
       feriado ? 'feriado' : '',
       s === inicio ? 'ini' : '',
       s === fin ? 'fin' : '',
-      enRango && s !== inicio && s !== fin ? 'rango' : '',
+      enRango && habil && s !== inicio && s !== fin ? 'rango' : '',
     ].filter(Boolean).join(' ');
     celdas.push(
-      <div key={d} className={cls} title={feriado ? 'Día no hábil' : undefined} onClick={() => clic(s)}>
+      <div key={d} className={cls}
+        title={feriado ? 'Día no hábil' : (!habil ? 'No cuenta para tu modalidad' : undefined)}
+        onClick={() => clic(s, seleccionable)}>
         {d}
       </div>
     );

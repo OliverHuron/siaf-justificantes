@@ -20,13 +20,39 @@ function esFinDeSemana(d) {
   return g === 0 || g === 6;
 }
 
+/** Día de la semana ISO (1 lunes … 7 domingo) de un Date. */
+function dowIso(d) {
+  const g = d.getUTCDay(); // 0 dom … 6 sáb
+  return g === 0 ? 7 : g;
+}
+
+/** Normaliza el conjunto de días hábiles de la semana (ISO 1–7). Def.: lun–vie. */
+function normDias(dias) {
+  if (!dias) return new Set([1, 2, 3, 4, 5]);
+  return dias instanceof Set ? dias : new Set([].concat(dias).map(Number));
+}
+
 /**
- * Días hábiles (lun–vie, sin feriados) transcurridos DESPUÉS de `desde` y hasta
- * `hasta` inclusive. Si `hasta` <= `desde`, devuelve 0.
- * `feriados` = iterable de fechas ISO 'YYYY-MM-DD' a excluir.
+ * Días de la semana hábiles según la modalidad del grupo:
+ *  - ESC (escolarizada): lunes a viernes.
+ *  - ABI (abierta) / cualquier otra: lunes a sábado.
  */
-function diasHabilesEntre(desde, hasta, feriados) {
+function diasSemanaDeModalidad(modalidad) {
+  const m = String(modalidad || '').trim().toUpperCase();
+  return m === 'ESC' || m === 'ESCOLARIZADO' || m === 'ESCOLARIZADA'
+    ? [1, 2, 3, 4, 5]
+    : [1, 2, 3, 4, 5, 6];
+}
+
+/**
+ * Días hábiles (según `dias` de la semana, sin feriados) transcurridos DESPUÉS de
+ * `desde` y hasta `hasta` inclusive. Si `hasta` <= `desde`, devuelve 0.
+ * `feriados` = iterable de fechas ISO 'YYYY-MM-DD' a excluir.
+ * `dias` = iterable de nº de día ISO (1 lun … 7 dom). Def.: lun–vie.
+ */
+function diasHabilesEntre(desde, hasta, feriados, dias) {
   const fer = feriados instanceof Set ? feriados : new Set(feriados || []);
+  const dset = normDias(dias);
   const a = aFecha(desde);
   const b = aFecha(hasta);
   if (b <= a) return 0;
@@ -34,7 +60,7 @@ function diasHabilesEntre(desde, hasta, feriados) {
   const cur = new Date(a);
   while (cur < b) {
     cur.setUTCDate(cur.getUTCDate() + 1);
-    if (!esFinDeSemana(cur) && !fer.has(iso(cur))) n += 1;
+    if (dset.has(dowIso(cur)) && !fer.has(iso(cur))) n += 1;
   }
   return n;
 }
@@ -92,27 +118,35 @@ function diasNaturales(inicio, fin) {
   return Math.round((b - a) / 86400000) + 1;
 }
 
-/** Lista de fechas hábiles (lun–vie, sin feriados) dentro de [inicio, fin] inclusive. */
-function expandirRangoHabil(inicio, fin, feriados) {
+/**
+ * Lista de fechas hábiles dentro de [inicio, fin] inclusive.
+ * `dias` = nº de día ISO hábiles (1 lun … 7 dom). Def.: lun–vie.
+ */
+function expandirRangoHabil(inicio, fin, feriados, dias) {
   const fer = feriados instanceof Set ? feriados : new Set(feriados || []);
+  const dset = normDias(dias);
   const out = [];
   const cur = aFecha(inicio);
   const b = aFecha(fin);
   while (cur <= b) {
     const s = iso(cur);
-    if (!esFinDeSemana(cur) && !fer.has(s)) out.push(s);
+    if (dset.has(dowIso(cur)) && !fer.has(s)) out.push(s);
     cur.setUTCDate(cur.getUTCDate() + 1);
   }
   return out;
 }
 
-/** Siguiente día hábil ESTRICTAMENTE posterior a `fechaIso` (salta finde y feriados). */
-function siguienteDiaHabil(fechaIso, feriados) {
+/**
+ * Siguiente día hábil ESTRICTAMENTE posterior a `fechaIso` (salta días no
+ * hábiles y feriados). `dias` = nº de día ISO hábiles. Def.: lun–vie.
+ */
+function siguienteDiaHabil(fechaIso, feriados, dias) {
   const fer = feriados instanceof Set ? feriados : new Set(feriados || []);
+  const dset = normDias(dias);
   const cur = aFecha(fechaIso);
   do {
     cur.setUTCDate(cur.getUTCDate() + 1);
-  } while (esFinDeSemana(cur) || fer.has(iso(cur)));
+  } while (!dset.has(dowIso(cur)) || fer.has(iso(cur)));
   return iso(cur);
 }
 
@@ -123,5 +157,5 @@ function fechaOficio(d = new Date()) {
 
 module.exports = {
   MESES, diasHabilesEntre, dentroDeVentana, textoDias, diaSemanaIso, fechaOficio, iso, aFecha,
-  diasNaturales, expandirRangoHabil, siguienteDiaHabil,
+  diasNaturales, expandirRangoHabil, siguienteDiaHabil, diasSemanaDeModalidad,
 };

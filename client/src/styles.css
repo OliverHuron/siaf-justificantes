@@ -141,12 +141,20 @@ tr.clic:hover { background: var(--navy-ghost); }
 .sg-x:hover { color: var(--texto); }
 .sg-nota { font-size: .82rem; color: var(--gris); margin: 6px 0 14px; }
 
-.sg-grid { display: grid; grid-template-columns: repeat(var(--cols, 6), 1fr); gap: 8px; }
+.sg-grid { display: grid; grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr)); gap: 8px; }
 .sg-cell {
+  min-width: 0;
   aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
   border: 1px solid var(--borde); border-radius: 10px; background: #fff;
   font: inherit; font-weight: 700; font-size: .95rem; color: var(--texto); cursor: pointer;
   -webkit-user-select: none; user-select: none;
+}
+/* En móvil el nº fijo de columnas se sale: rejilla fluida que llena el ancho. */
+@media (max-width: 480px) {
+  .sg-overlay { padding: 12px; }
+  .sg-dialog { padding: 16px 14px; border-radius: 14px; }
+  .sg-grid { gap: 6px; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); }
+  .sg-cell { font-size: .9rem; border-radius: 8px; }
 }
 .sg-cell:hover { background: var(--gris-suave); }
 .sg-cell.on { background: var(--navy); border-color: var(--navy); color: #fff; }
@@ -282,7 +290,14 @@ tr.clic:hover { background: var(--navy-ghost); }
   margin: 20px 0 6px;
 }
 .login2-card label:first-of-type { margin-top: 0; }
-.login2-card .aviso { text-align: center; font-size: 14px; margin: 0 0 4px; }
+.login2-card .aviso { text-align: center; font-size: 14px; margin: 8px 0 0; }
+
+/* semestre + sección dentro de la tarjeta de acceso */
+.login-grupo { display: flex; gap: 12px; }
+.login-grupo-f { flex: 1 1 0; min-width: 0; }
+.login-grupo-f label { margin-top: 20px; }
+.login-grupo-f .sg-trigger { margin-top: 6px; }
+@media (max-width: 460px) { .login-grupo { flex-direction: column; gap: 0; } }
 
 .login2-inp {
   display: flex; align-items: center;
@@ -362,6 +377,8 @@ tr.clic:hover { background: var(--navy-ghost); }
 .fc-val { font-size: 1.05rem; font-weight: 700; margin-top: 3px; }
 .fc-total { background: #fff7ed; border-color: #fdba74; }
 .fc-total .fc-val { color: #b45309; }
+.fc-mal { background: var(--mal-bg); border-color: var(--mal); }
+.fc-mal .fc-rot, .fc-mal .fc-val { color: var(--mal); }
 
 .exp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 14px; }
 .exp-card { border: 1px solid var(--borde); border-radius: 10px; padding: 11px 14px; background: #f8fafc; }

@@ -83,6 +83,22 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 - ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
 - ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
 
+**Hecho en la sesión del 2026-09-09 (2ª parte)** — acceso con grupo + reglas por modalidad:
+- ✅ **Semestre y sección en la pantalla de acceso** (`AlumnoLogin`), debajo del correo:
+  dos `SelectorGrid` de selección **única**. El semestre solo muestra los del **periodo
+  en curso** (NON 1/3/5/7/9 del 2-ago al 30-ene; PAR 2/4/6/8 del 1-feb al 1-ago).
+  Al elegir se **verifica el grupo en vivo** contra la FCCA (`GET /api/expediente`) y se
+  avisa ahí mismo si no existe; «Enviar código» se habilita solo con grupo válido. El
+  grupo se guarda en `localStorage` (`sj_alumno_grupo`) y lo toma el formulario.
+- ✅ **Formulario**: el expediente (tarjetas) y el motivo **no se muestran hasta elegir el
+  rango de fechas**. Ya no hay `GruposSelector` (un solo grupo por solicitud).
+- ✅ **Días hábiles por modalidad**: `ESC` (escolarizada) = lun–vie; `ABI`/otra = lun–sáb.
+  `lib/dias.js` (`diasSemanaDeModalidad`, param `dias` en `expandirRangoHabil` /
+  `siguienteDiaHabil` / `diasHabilesEntre`), `RangoCalendario` (prop `diasSemana`, días no
+  hábiles no seleccionables), `banderas.js` y `POST /solicitudes` usan el set según la
+  modalidad del grupo. El tope de 15 y la ventana de 10 se cuentan en **días hábiles de
+  esa modalidad** desde la reincorporación (`siguienteDiaHabil(fecha_fin)`).
+
 **Hecho en la sesión del 2026-09-09** — formulario de solicitud rediseñado:
 - ✅ Layout por secciones con headers navy (FECHAS / EXPEDIENTE / MOTIVO Y COMPROBANTES),
   calendario de **rango** (inicio→fin) con tarjetas Inicio/Fin/Total.

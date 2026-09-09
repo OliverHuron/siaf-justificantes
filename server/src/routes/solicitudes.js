@@ -10,7 +10,8 @@ const banderas = require('../lib/banderas');
 const bitacora = require('../lib/bitacora');
 const { token } = require('../lib/crypto');
 const {
-  textoDias, diasNaturales, expandirRangoHabil, siguienteDiaHabil, diasHabilesEntre, iso,
+  textoDias, expandirRangoHabil, siguienteDiaHabil, diasHabilesEntre,
+  diasSemanaDeModalidad, iso,
 } = require('../lib/dias');
 const { resolverExpediente, matriculaDeCorreo } = require('../lib/expediente');
 
@@ -131,16 +132,36 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
     const diasLimite = (conf.reglas && conf.reglas.dias_limite_solicitud) || config.reglas.diasLimiteSolicitud;
     const pendientesMax = (conf.reglas && conf.reglas.pendientes_max) || config.reglas.pendientesMax;
 
-    const totalDias = diasNaturales(fechaInicio, fechaFin);
-    const fechasHabiles = expandirRangoHabil(fechaInicio, fechaFin, feriados);
-    if (!fechasHabiles.length) throw new ApiError(400, 'El rango seleccionado no incluye días hábiles');
+    // Expediente por grupo — consulta en vivo con caché. No bloquea el envío:
+    // límite global de 5 s; los que no resuelvan quedan sin snapshot.
+    const expedientes = await Promise.race([
+      Promise.all(
+        gruposEntrada.map((g) => resolverExpediente(g.semestre, g.seccion).catch(() => ({ encontrado: false })))
+      ),
+      new Promise((r) => setTimeout(() => r(gruposEntrada.map(() => ({ encontrado: false }))), 5000)),
+    ]);
+    const gruposSnap = gruposEntrada.map((g, i) => {
+      const e = expedientes[i] || {};
+      return e.encontrado
+        ? { semestre: g.semestre, seccion: g.seccion, licenciatura: e.licenciatura,
+            turno: e.turno, salon: e.salon, modalidad: e.modalidad, periodo: e.periodo }
+        : { semestre: g.semestre, seccion: g.seccion };
+    });
+    const exp = expedientes[0] && expedientes[0].encontrado ? expedientes[0] : { encontrado: false };
+
+    // Días hábiles de la semana según la modalidad del grupo principal:
+    // ESC (escolarizada) = lun–vie; ABI (abierta) / otra = lun–sáb.
+    const diasSemana = diasSemanaDeModalidad(exp.encontrado ? exp.modalidad : null);
+
+    const fechasHabiles = expandirRangoHabil(fechaInicio, fechaFin, feriados, diasSemana);
+    if (!fechasHabiles.length) throw new ApiError(400, 'El rango seleccionado no incluye días hábiles para tu modalidad');
 
     if (!motivo.exento) {
-      if (totalDias > diasMaximos) {
-        throw new ApiError(400, `Solo se pueden justificar hasta ${diasMaximos} días por solicitud (seleccionaste ${totalDias}).`);
+      if (fechasHabiles.length > diasMaximos) {
+        throw new ApiError(400, `Solo se pueden justificar hasta ${diasMaximos} días hábiles por solicitud (seleccionaste ${fechasHabiles.length}).`);
       }
-      const reincorporacion = siguienteDiaHabil(fechaFin, feriados);
-      const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados);
+      const reincorporacion = siguienteDiaHabil(fechaFin, feriados, diasSemana);
+      const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados, diasSemana);
       if (transcurridos > diasLimite) {
         throw new ApiError(409,
           `Fuera de plazo: desde tu reincorporación (${reincorporacion}) ya pasaron ${transcurridos} días hábiles (máx. ${diasLimite}).`);
@@ -164,29 +185,12 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
       throw new ApiError(409, `Ya tienes ${pendientesMax} solicitudes pendientes. Espera a que se resuelvan.`);
     }
 
-    // Expediente por grupo — consulta en vivo con caché. No bloquea el envío:
-    // límite global de 5 s; los que no resuelvan quedan sin snapshot.
-    const expedientes = await Promise.race([
-      Promise.all(
-        gruposEntrada.map((g) => resolverExpediente(g.semestre, g.seccion).catch(() => ({ encontrado: false })))
-      ),
-      new Promise((r) => setTimeout(() => r(gruposEntrada.map(() => ({ encontrado: false }))), 5000)),
-    ]);
-    const gruposSnap = gruposEntrada.map((g, i) => {
-      const e = expedientes[i] || {};
-      return e.encontrado
-        ? { semestre: g.semestre, seccion: g.seccion, licenciatura: e.licenciatura,
-            turno: e.turno, salon: e.salon, modalidad: e.modalidad, periodo: e.periodo }
-        : { semestre: g.semestre, seccion: g.seccion };
-    });
-    const exp = expedientes[0] && expedientes[0].encontrado ? expedientes[0] : { encontrado: false };
-
     const tipo = motivo.tipo;
     const fechasOrdenadas = fechasHabiles;
     const tokSeg = token(24);
     const flags = await banderas.calcular(
       { matricula, tipo, fechas: fechasOrdenadas, semestres, secciones, fecha_inicio: fechaInicio, fecha_fin: fechaFin },
-      { diasLimite, diasMaximos, exento: motivo.exento, feriados }
+      { diasLimite, diasMaximos, exento: motivo.exento, feriados, diasSemana }
     );
 
     const creada = await db.withTransaction(async (client) => {
