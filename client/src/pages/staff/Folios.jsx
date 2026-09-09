@@ -104,7 +104,7 @@ function Alertas() {
               {data.alertas.map((a) => (
                 <tr key={a.folio}>
                   <td className="mono">{a.folio}</td>
-                  <td>{a.nombre_declarado || '—'}<br /><span className="hint mono">{a.matricula_declarada || ''}</span></td>
+                  <td>{a.nombre_declarado || 'sin nombre'}<br /><span className="hint mono">{a.matricula_declarada || ''}</span></td>
                   <td>{a.escaneos} <span className="hint">({a.escaneos_ok} ok)</span></td>
                   <td>{a.ips_distintas >= 4 ? <span className="pill mal">{a.ips_distintas}</span> : a.ips_distintas}</td>
                   <td>{a.intentos_fallidos >= 5 ? <span className="pill alerta">{a.intentos_fallidos}</span> : a.intentos_fallidos}</td>

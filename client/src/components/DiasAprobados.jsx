@@ -46,7 +46,7 @@ export default function DiasAprobados({ pedidos = [], value = [], onChange }) {
     const cls = ['dc-day', aprob ? 'aprob' : (pedido ? 'pedido' : '')].filter(Boolean).join(' ');
     celdas.push(
       <div key={d} className={cls} onClick={() => toggle(s)}
-        title={pedido ? (aprob ? 'Aprobado — clic para quitar' : 'Pedido — clic para aprobar') : undefined}>
+        title={pedido ? (aprob ? 'Aprobado (clic para quitar)' : 'Pedido (clic para aprobar)') : undefined}>
         {d}
       </div>
     );

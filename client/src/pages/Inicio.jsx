@@ -8,7 +8,7 @@ export default function Inicio() {
       </div>
       <div className="wrap">
         <h1>Sistema de justificantes de inasistencia</h1>
-        <p className="sub">Facultad de Contaduría y Ciencias Administrativas — UMSNH.</p>
+        <p className="sub">Facultad de Contaduría y Ciencias Administrativas, UMSNH.</p>
 
         <div className="card">
           <h2>Para alumnos</h2>

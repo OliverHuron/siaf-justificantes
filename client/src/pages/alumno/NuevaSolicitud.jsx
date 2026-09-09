@@ -10,7 +10,7 @@ const ORD_NUM = {
   sexto: 6, septimo: 7, 'séptimo': 7, octavo: 8, noveno: 9,
 };
 const numSemestre = (c, e) => ORD_NUM[c] ?? ORD_NUM[e] ?? Number(c) ?? c;
-const fmtFecha = (s) => (s ? s.split('-').reverse().join('/') : '—');
+const fmtFecha = (s) => (s ? s.split('-').reverse().join('/') : 'sin definir');
 
 const p2 = (n) => String(n).padStart(2, '0');
 const isoLocal = (d) => `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`;
@@ -194,7 +194,7 @@ export default function NuevaSolicitud() {
                 <h2>Fechas a justificar</h2>
                 {cat.reglamento_url && (
                   <a className="sec-link" href={cat.reglamento_url} target="_blank" rel="noreferrer">
-                    Reglamento (UMSNH) ↗
+                    Reglamento (UMSNH)
                   </a>
                 )}
               </div>
@@ -261,7 +261,7 @@ export default function NuevaSolicitud() {
 
                   <label>Tipo de Justificante</label>
                   <select value={f.tipo} onChange={(e) => set('tipo', e.target.value)}>
-                    <option value="">— Selecciona —</option>
+                    <option value="">Selecciona una opción</option>
                     {cat.motivo.tipos.map((t) => <option key={t.clave} value={t.clave}>{t.etiqueta}</option>)}
                   </select>
 
@@ -269,7 +269,7 @@ export default function NuevaSolicitud() {
                     <>
                       <label>Origen de Atención</label>
                       <select value={f.origen} onChange={(e) => set('origen', e.target.value)}>
-                        <option value="">— Selecciona —</option>
+                        <option value="">Selecciona una opción</option>
                         {cat.motivo.origenes.map((o) => <option key={o.clave} value={o.clave}>{o.etiqueta}</option>)}
                       </select>
                     </>

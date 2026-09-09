@@ -140,7 +140,7 @@ export default function Bandeja() {
                         {adj.receta
                           ? <BotonAdjunto solicitudId={s.id} adjId={adj.receta} clase="receta"
                               titulo="Ver receta / constancia" />
-                          : <span className="hint">—</span>}
+                          : <span className="hint">Sin receta</span>}
                         {esPrivada && adj.ticket && (
                           <BotonAdjunto solicitudId={s.id} adjId={adj.ticket} clase="ticket"
                             titulo="Ver ticket de compra" />

@@ -30,7 +30,7 @@ export default function Adjunto({ url, mime, nombre }) {
     <div className="adj-visor">
       <div className="adj-visor-top">
         <span className="hint mono">{nombre}</span>
-        {src && <a href={src} target="_blank" rel="noreferrer">Abrir ↗</a>}
+        {src && <a href={src} target="_blank" rel="noreferrer">Abrir en pestaña nueva</a>}
       </div>
       <div className="adj-visor-box">
         {!src ? (

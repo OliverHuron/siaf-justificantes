@@ -90,7 +90,7 @@ export default function EnfermeriaPanel() {
                 <td>{s.nombre_declarado}<br /><span className="hint mono">{s.matricula_declarada}</span></td>
                 <td className="mono">{(s.fechas || []).join(', ')}</td>
                 <td><span className="pill neutro">{s.estado}</span></td>
-                <td className="mono">{s.folio || '—'}</td>
+                <td className="mono">{s.folio || 'sin folio'}</td>
               </tr>
             ))}
             {hist.length === 0 && <tr><td colSpan={5} className="hint">Sin fichas.</td></tr>}

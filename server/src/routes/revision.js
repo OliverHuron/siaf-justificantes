@@ -524,13 +524,13 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
       try {
         await mailer.enviar({
           to: p.profesor_correo,
-          subject: `Justificación de inasistencia — ${s.nombre_declarado} (${emitido.folio})`,
+          subject: `Justificación de inasistencia: ${s.nombre_declarado} (${emitido.folio})`,
           text:
             `Estimado(a) profesor(a) de "${p.materia}":\n\n` +
             `Se adjunta el oficio No. ${emitido.folio} que justifica la inasistencia de ` +
             `${s.nombre_declarado} (matrícula ${s.matricula_declarada}) ${diasTxt}.\n\n` +
             `Puede verificar su autenticidad en ${config.publicUrl}/validar?folio=${encodeURIComponent(emitido.folio)}&token=${encodeURIComponent(emitido.token_qr)}\n\n` +
-            `Secretaría Académica, FCCA — UMSNH.`,
+            `Secretaría Académica, FCCA, UMSNH.`,
           attachments,
         });
         enviados += 1;

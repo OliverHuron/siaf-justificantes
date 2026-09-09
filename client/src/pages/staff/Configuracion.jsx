@@ -52,7 +52,7 @@ function Smtp() {
       <label>Host</label><input value={v.host || ''} onChange={(e) => setV({ ...v, host: e.target.value })} />
       <label>Puerto</label><input value={v.port || ''} onChange={(e) => setV({ ...v, port: Number(e.target.value) })} />
       <label>Usuario</label><input value={v.user || ''} onChange={(e) => setV({ ...v, user: e.target.value })} />
-      <label>Contraseña (App Password){v.pass_configurada ? ' — ya configurada' : ''}</label>
+      <label>Contraseña (App Password){v.pass_configurada ? ' (ya configurada)' : ''}</label>
       <input type="password" value={v.pass || ''} placeholder={v.pass_configurada ? '••••••••' : ''}
         onChange={(e) => setV({ ...v, pass: e.target.value })} />
       <label>Remitente</label><input value={v.from || ''} onChange={(e) => setV({ ...v, from: e.target.value })} />

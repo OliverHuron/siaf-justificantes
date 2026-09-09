@@ -45,12 +45,12 @@ function expandirCodigos(g) {
   const modalidad = String(g.modalidad || '').trim().toUpperCase();
   return {
     licenciatura: lic,
-    licenciatura_nombre: LICENCIATURAS[lic] || g.licenciatura_raw || lic || '—',
+    licenciatura_nombre: LICENCIATURAS[lic] || g.licenciatura_raw || lic || '',
     turno,
-    turno_nombre: TURNOS[turno] || turno || '—',
-    salon: g.salon || '—',
+    turno_nombre: TURNOS[turno] || turno || '',
+    salon: g.salon || '',
     modalidad,
-    modalidad_nombre: MODALIDADES[modalidad] || modalidad || '—',
+    modalidad_nombre: MODALIDADES[modalidad] || modalidad || '',
     periodo: g.periodo || null,
   };
 }

@@ -4,13 +4,13 @@ export default function AvisoPrivacidad() {
   return (
     <div className="wrap doc">
       <h1>Aviso de Privacidad Integral</h1>
-      <p className="sub">Sistema de Justificantes de Inasistencia — FCCA, UMSNH. Última actualización: agosto de 2026.</p>
+      <p className="sub">Sistema de Justificantes de Inasistencia. FCCA, UMSNH. Última actualización: agosto de 2026.</p>
 
       <h2>1. Responsable del tratamiento</h2>
       <p>
         La <strong>Universidad Michoacana de San Nicolás de Hidalgo (UMSNH)</strong>, a través de la
         Secretaría Académica de la Facultad de Contaduría y Ciencias Administrativas (FCCA), con
-        domicilio en <em>[domicilio de la FCCA, Ciudad Universitaria, Morelia, Michoacán — por confirmar]</em>,
+        domicilio en <em>[domicilio de la FCCA, Ciudad Universitaria, Morelia, Michoacán (por confirmar)]</em>,
         es la responsable del tratamiento de los datos personales que se recaban a través de este sistema.
       </p>
 

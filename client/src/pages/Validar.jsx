@@ -77,9 +77,9 @@ export default function Validar() {
                 <tr><th>Motivo</th><td>{res.tipo}</td></tr>
                 <tr><th>Días</th><td>{res.dias}</td></tr>
                 <tr><th>Emitido</th><td>{new Date(res.emitido_en).toLocaleString()}</td></tr>
-                <tr><th>Emitió</th><td>{res.emitido_por || '—'}</td></tr>
+                <tr><th>Emitió</th><td>{res.emitido_por || 'sin dato'}</td></tr>
                 {res.estado === 'ANULADO' && (
-                  <tr><th>Anulado</th><td>{new Date(res.anulado_en).toLocaleString()} — {res.motivo_anulacion}</td></tr>
+                  <tr><th>Anulado</th><td>{new Date(res.anulado_en).toLocaleString()}. Motivo: {res.motivo_anulacion}</td></tr>
                 )}
               </tbody>
             </table>

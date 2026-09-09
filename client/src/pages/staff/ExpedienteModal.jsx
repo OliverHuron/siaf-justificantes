@@ -16,7 +16,7 @@ const ORD_SEM = {
 const semLabel = (v) => ORD_SEM[String(v).toLowerCase()] || (/^\d+$/.test(String(v)) ? `${v}°` : v);
 const fFecha = (s) => {
   const d = String(s || '').slice(0, 10).split('-');
-  return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : (s || '—');
+  return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : (s || 'sin dato');
 };
 const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
 const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -108,7 +108,7 @@ export default function ExpedienteModal() {
     <div className="modal-ovl" onClick={cerrar}>
       <div className="modal-exp" onClick={(e) => e.stopPropagation()}>
         <div className="modal-exp-head">
-          <h2>Expediente de Solicitud — Folio: {s?.folio || (s ? `#${s.id}` : '…')}</h2>
+          <h2>Expediente de solicitud · Folio {s?.folio || (s ? s.id : '…')}</h2>
           <button className="modal-exp-x" aria-label="Cerrar" onClick={cerrar}>×</button>
         </div>
 
@@ -126,9 +126,9 @@ export default function ExpedienteModal() {
                   <div style={{ marginTop: 12 }} />
                   {esImss && (
                     <div className="exp-valida">
-                      <span>📋 Validación oficial</span>
+                      <span>Validación oficial</span>
                       <a href={URL_RECETA_PUBLICA} target="_blank" rel="noreferrer">
-                        Consultar receta médica pública ↗
+                        Consultar receta médica pública
                       </a>
                     </div>
                   )}
@@ -223,7 +223,7 @@ export default function ExpedienteModal() {
                       <span className="al-k">Periodo pedido</span>
                       <span className="al-v al-periodo">
                         <b>{fFecha(s.fecha_inicio || (s.fechas || [])[0])}</b>
-                        <span className="al-arrow">→</span>
+                        <span className="al-arrow">a</span>
                         <b>{fFecha(s.fecha_fin || (s.fechas || [])[(s.fechas || []).length - 1])}</b>
                         <span className="chip-dias">{(s.fechas || []).length} día(s)</span>
                       </span>
@@ -300,7 +300,7 @@ export default function ExpedienteModal() {
                     <label>Plantilla del oficio</label>
                     <select value={aprob.plantilla_cuerpo_id}
                       onChange={(e) => setAprob((a) => ({ ...a, plantilla_cuerpo_id: e.target.value }))}>
-                      <option value="">— genérica —</option>
+                      <option value="">Genérica</option>
                       {plCuerpo.map((p) => <option key={p.id} value={p.id}>{p.titulo}</option>)}
                     </select>
                     <label>…o texto libre para el oficio</label>
@@ -314,7 +314,7 @@ export default function ExpedienteModal() {
                     </label>
 
                     <div style={{ margin: '10px 0' }}>
-                      <button type="button" className="plano mini" onClick={verOficio}>Vista previa del oficio ↗</button>
+                      <button type="button" className="plano mini" onClick={verOficio}>Vista previa del oficio</button>
                     </div>
 
                     <div className="dictamen-btns">
@@ -342,7 +342,7 @@ export default function ExpedienteModal() {
                         <label>Plantilla de rechazo</label>
                         <select value={rech.plantilla_clave}
                           onChange={(e) => setRech((r) => ({ ...r, plantilla_clave: e.target.value }))}>
-                          <option value="">— sin plantilla —</option>
+                          <option value="">Sin plantilla</option>
                           {plCorreo.map((p) => <option key={p.id} value={p.clave}>{p.titulo}</option>)}
                         </select>
                         <textarea value={rech.motivo} onChange={(e) => setRech((r) => ({ ...r, motivo: e.target.value }))}
