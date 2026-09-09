@@ -11,8 +11,7 @@
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
     "migrate": "node scripts/migrate.js",
-    "seed": "node scripts/seed.js",
-    "sync:fcca": "node scripts/sync-fcca.js"
+    "seed": "node scripts/seed.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

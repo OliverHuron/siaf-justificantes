@@ -39,8 +39,12 @@ export default function NuevaSolicitud() {
   useEffect(() => {
     if (!semPrimario || !secPrimaria) { setExp(null); return; }
     const n = numSemestre(semPrimario);
+    let vivo = true;
+    setExp({ cargando: true });
     api(`/expediente?semestre=${encodeURIComponent(n)}&seccion=${encodeURIComponent(secPrimaria)}`)
-      .then(setExp).catch(() => setExp({ encontrado: false }));
+      .then((r) => vivo && setExp(r))
+      .catch(() => vivo && setExp({ encontrado: false }));
+    return () => { vivo = false; };
   }, [semPrimario, secPrimaria]);
 
   if (err && !cat) return <div className="wrap"><div className="aviso error">{err}</div></div>;
@@ -183,19 +187,27 @@ export default function NuevaSolicitud() {
             </div>
           </div>
 
-          <div className="exp-cards">
-            {cardExp('LICENCIATURA', exp?.encontrado ? exp.licenciatura_nombre : (semPrimario && secPrimaria ? 'No disponible' : '—'))}
-            {cardExp('TURNO', exp?.encontrado ? exp.turno_nombre : '—')}
-            {cardExp('SALÓN', exp?.encontrado ? exp.salon : '—')}
-            {cardExp('MODALIDAD', exp?.encontrado ? exp.modalidad_nombre : '—')}
-            {cardExp('PERIODO', exp?.encontrado ? exp.periodo : '—')}
-          </div>
+          {(() => {
+            const v = (nom) => (exp?.cargando ? 'Consultando…' : exp?.encontrado ? nom : (semPrimario && secPrimaria ? 'No disponible' : '—'));
+            return (
+              <div className="exp-cards">
+                {cardExp('LICENCIATURA', v(exp?.licenciatura_nombre))}
+                {cardExp('TURNO', v(exp?.turno_nombre))}
+                {cardExp('SALÓN', v(exp?.salon))}
+                {cardExp('MODALIDAD', v(exp?.modalidad_nombre))}
+                {cardExp('PERIODO', v(exp?.periodo))}
+              </div>
+            );
+          })()}
           <div className="exp-cards">
             {cardExp('MATRÍCULA', matricula)}
             {cardExp('CORREO INSTITUCIONAL', alumno?.email)}
           </div>
-          {semPrimario && secPrimaria && exp && !exp.encontrado && (
-            <p className="hint">No hay datos cargados para ese grupo; la Secretaría lo verificará.</p>
+          {semPrimario && secPrimaria && exp && !exp.cargando && !exp.encontrado && (
+            <p className="hint">
+              No se pudo obtener el expediente de fcca.umich.mx{exp.error ? ` (${exp.error})` : ''};
+              la Secretaría lo verificará.
+            </p>
           )}
         </section>
 

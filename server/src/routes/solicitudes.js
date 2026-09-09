@@ -143,8 +143,12 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
       throw new ApiError(409, `Ya tienes ${pendientesMax} solicitudes pendientes. Espera a que se resuelvan.`);
     }
 
-    // Expediente académico (snapshot) del grupo primario
-    const exp = await resolverExpediente(semestres[0], secciones[0]).catch(() => ({ encontrado: false }));
+    // Expediente académico (snapshot) del grupo primario — consulta en vivo con
+    // caché. Si tarda o falla no bloquea el envío: se guarda sin snapshot.
+    const exp = await Promise.race([
+      resolverExpediente(semestres[0], secciones[0]).catch(() => ({ encontrado: false })),
+      new Promise((r) => setTimeout(() => r({ encontrado: false }), 4000)),
+    ]);
 
     const tipo = motivo.tipo;
     const fechasOrdenadas = fechasHabiles;

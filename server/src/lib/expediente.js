@@ -1,6 +1,6 @@
 'use strict';
 
-const db = require('./../db');
+const { consultarGrupo } = require('./fcca');
 
 const LICENCIATURAS = {
   LIA: 'Licenciatura en Informática Administrativa',
@@ -8,7 +8,7 @@ const LICENCIATURAS = {
   LA: 'Licenciatura en Administración',
   LM: 'Licenciatura en Mercadotecnia',
 };
-const TURNOS = { MAT: 'Matutino', VESP: 'Vespertino' };
+const TURNOS = { MAT: 'Matutino', VESP: 'Vespertino', ABI: 'Abierto', LINEA: 'En línea' };
 const MODALIDADES = { ESC: 'Escolarizado', ABI: 'Abierto', LINEA: 'En línea', LÍNEA: 'En línea' };
 
 const MATRICULA_RE = /^\d{7}[A-Za-z]$/;
@@ -55,19 +55,25 @@ function expandirCodigos(g) {
   };
 }
 
-/** Busca el grupo (semestre, seccion) del ciclo activo y devuelve el expediente. */
+/**
+ * Consulta EN VIVO el expediente del grupo en fcca.umich.mx (con caché en
+ * memoria; nada se guarda en la BD). Devuelve códigos + nombres largos.
+ */
 async function resolverExpediente(semestre, seccion) {
-  const cfg = await db.query(`SELECT valor FROM config WHERE clave = 'ciclo_activo'`);
-  const ciclo = (cfg.rows[0] && String(cfg.rows[0].valor).replace(/"/g, '')) || String(new Date().getFullYear());
   const sem = semestreNum(semestre);
-  const sec = String(Number(seccion)) === 'NaN' ? String(seccion) : String(Number(seccion));
-  const r = await db.query(
-    `SELECT licenciatura, licenciatura_raw, turno, salon, modalidad, periodo
-       FROM grupos WHERE ciclo_escolar = $1 AND semestre = $2 AND seccion = $3`,
-    [ciclo, sem, sec]
-  );
-  if (!r.rows[0]) return { encontrado: false, ciclo, semestre: sem, seccion: sec };
-  return { encontrado: true, ciclo, semestre: sem, seccion: sec, ...expandirCodigos(r.rows[0]) };
+  const sec = Number.isNaN(Number(seccion)) ? String(seccion) : String(Number(seccion));
+  const g = await consultarGrupo(sem, sec);
+  if (!g || !g.encontrado) {
+    return { encontrado: false, semestre: sem, seccion: sec, ...(g && g.error ? { error: g.error } : {}) };
+  }
+  return {
+    encontrado: true, semestre: sem, seccion: sec,
+    licenciatura: codigoLicenciatura(g.licenciatura_raw),
+    ...expandirCodigos({
+      licenciatura: g.licenciatura_raw, licenciatura_raw: g.licenciatura_raw,
+      turno: g.turno, salon: g.salon, modalidad: g.modalidad, periodo: g.periodo,
+    }),
+  };
 }
 
 module.exports = {

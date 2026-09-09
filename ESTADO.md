@@ -86,24 +86,24 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 **Hecho en la sesión del 2026-09-09** — formulario de solicitud rediseñado:
 - ✅ Layout por secciones con headers navy (FECHAS / EXPEDIENTE / MOTIVO Y COMPROBANTES),
   calendario de **rango** (inicio→fin) con tarjetas Inicio/Fin/Total.
-- ✅ **Expediente automático**: tabla `grupos` (licenciatura/turno/salón/modalidad/periodo
-  por semestre+sección) + `scripts/sync-fcca.js` (`npm run sync:fcca`, porta el scraper
-  Python de `Desktop/ObtenerHorarios` a Node/cheerio) + `GET /api/expediente`. La matrícula
-  se deriva del correo (`#######L@umich.mx`).
+- ✅ **Expediente automático (consulta en vivo, sin BD)**: `lib/fcca.js` consulta
+  `fcca.umich.mx/Horarios.php` al vuelo con **caché en memoria** (sesión ~10 min,
+  resultado por grupo ~12 h). `GET /api/expediente?semestre=&seccion=` → licenciatura/
+  turno/salón/modalidad/periodo. 1ª consulta ~2.7 s, siguientes instantáneas. La matrícula
+  se deriva del correo (`#######L@umich.mx`). En la solicitud se guarda solo un **snapshot**
+  de esos 5 campos (columnas en `solicitudes`); la tabla `grupos` se eliminó (migración 003).
 - ✅ **Motivo**: Tipo (Médico / Caso especial) + Origen (Privada → receta+ticket;
   Institución pública → receta). Enfermería se omite (tendrá panel propio).
 - ✅ **Reglas de fecha** (no aplican a caso especial): tope 15 días por solicitud +
   `10 días hábiles` desde la reincorporación (`siguienteDiaHabil(fecha_fin)`); banderas
   `fuera_de_ventana` y `excede_maximo`.
 - ✅ Enlace al Reglamento (`siia.umich.mx/.../CapituloI.htm`), en `config.textos.reglamento_url`.
-- Pendiente: correr `npm run sync:fcca` completo (quedaron ~80/205 grupos de la prueba).
 
 **Fase 2 restante** (ver `PLAN.md §13`)
 - Consolidado en PDF (hoy es tabla imprimible con `window.print()`).
 - TOTP (segundo factor) para `encargada` y `supervisor`.
 
 **Fase 3**
-- `sync:fcca` por cron para refrescar `grupos`.
 - SSO institucional (OAuth en producción) + autollenado de nombre/matrícula, reemplazando
   el OTP.
 
