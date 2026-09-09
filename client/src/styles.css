@@ -431,6 +431,38 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 .exp-cards2 .exp-card { background: #f8fafc; }
 .exp-mini-label { font-size: .7rem; font-weight: 800; letter-spacing: .04em; color: var(--navy); text-transform: uppercase; }
 
+/* detalle del alumno: identidad + filas etiqueta/valor */
+.al-id { display: flex; align-items: center; gap: 12px; margin: 14px 0 4px; }
+.al-avatar {
+  width: 42px; height: 42px; border-radius: 999px; flex: 0 0 auto;
+  background: var(--navy); color: #fff; font-weight: 800; font-size: .92rem;
+  display: flex; align-items: center; justify-content: center; letter-spacing: .02em;
+}
+.al-id-txt { min-width: 0; }
+.al-name { font-weight: 700; font-size: 1.02rem; line-height: 1.2; }
+.al-meta { color: var(--gris); font-size: .82rem; margin-top: 3px; word-break: break-word; }
+.al-rows { margin-top: 12px; border-top: 1px solid var(--borde); }
+.al-row {
+  display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--borde); font-size: .9rem;
+}
+.al-row:last-child { border-bottom: none; }
+.al-k {
+  flex: 0 0 108px; color: var(--gris); font-weight: 700; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .04em; padding-top: 2px;
+}
+.al-v { flex: 1 1 auto; min-width: 0; }
+.al-v .sub { display: block; color: var(--gris); font-size: .82rem; margin-top: 3px; }
+.al-chip {
+  display: inline-block; background: var(--navy-ghost); color: var(--navy);
+  font-weight: 700; font-size: .82rem; padding: 3px 11px; border-radius: 999px;
+}
+.al-periodo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.al-arrow { color: var(--gris); }
+@media (max-width: 520px) {
+  .al-row { flex-direction: column; gap: 3px; }
+  .al-k { flex-basis: auto; }
+}
+
 .dias-aprob-card {
   border: 1px solid var(--navy); border-left: 4px solid var(--navy);
   border-radius: 10px; padding: 10px 14px; background: var(--navy-ghost);

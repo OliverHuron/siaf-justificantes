@@ -18,6 +18,7 @@ const fFecha = (s) => {
   const d = String(s || '').slice(0, 10).split('-');
   return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : (s || '—');
 };
+const iniciales = (n) => String(n || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0] || '').join('').toUpperCase() || '?';
 
 // Portal público para verificar recetas / incapacidades de instituciones públicas.
 const URL_RECETA_PUBLICA = 'https://serviciosdigitales.imss.gob.mx/portal-ciudadano/incapacidades';
@@ -178,47 +179,71 @@ export default function ExpedienteModal() {
                 <div className="exp-block">
                   <span className="pill-head">Detalle del alumno</span>
 
-                  <div className="exp-cards2" style={{ marginTop: 12 }}>
-                    <div className="exp-card"><div className="exp-mini-label">Alumno</div><div className="exp-val">{s.nombre_declarado}</div></div>
-                    <div className="exp-card"><div className="exp-mini-label">Matrícula</div><div className="exp-val">{s.matricula_declarada}</div></div>
-                    <div className="exp-card"><div className="exp-mini-label">Correo institucional</div><div className="exp-val">{s.email_alumno}</div></div>
-                    {grupos.map((g, i) => (
-                      <div className="exp-card" key={i}>
-                        <div className="exp-mini-label">Grupo</div>
-                        <div className="exp-val">
-                          {semLabel(g.semestre)} · Secc {g.seccion}
-                          {[g.licenciatura, g.turno, g.salon, g.modalidad].filter(Boolean).length
-                            ? <div className="hint">{[g.licenciatura, g.turno, g.salon, g.modalidad].filter(Boolean).join(' · ')}</div>
-                            : null}
-                        </div>
+                  <div className="al-id">
+                    <div className="al-avatar">{iniciales(s.nombre_declarado)}</div>
+                    <div className="al-id-txt">
+                      <div className="al-name">{s.nombre_declarado}</div>
+                      <div className="al-meta">
+                        <span className="mono">{s.matricula_declarada}</span>
+                        {s.email_alumno ? <> · <span className="mono">{s.email_alumno}</span></> : null}
                       </div>
-                    ))}
+                    </div>
+                  </div>
+
+                  <div className="al-rows">
+                    {grupos.map((g, i) => {
+                      const meta = [g.licenciatura, g.turno, g.salon, g.modalidad].filter(Boolean).join(' · ');
+                      return (
+                        <div className="al-row" key={i}>
+                          <span className="al-k">Grupo</span>
+                          <span className="al-v">
+                            <span className="al-chip">{semLabel(g.semestre)} · Secc {g.seccion}</span>
+                            {meta && <span className="sub">{meta}</span>}
+                          </span>
+                        </div>
+                      );
+                    })}
                     {grupos.length === 0 && (
-                      <div className="exp-card">
-                        <div className="exp-mini-label">Sem / Secc</div>
-                        <div className="exp-val">{(s.semestres || []).map(semLabel).join(', ')} / {(s.secciones || []).join(', ')}</div>
+                      <div className="al-row">
+                        <span className="al-k">Sem / Secc</span>
+                        <span className="al-v">
+                          <span className="al-chip">
+                            {(s.semestres || []).map(semLabel).join(', ')} · Secc {(s.secciones || []).join(', ')}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="al-row">
+                      <span className="al-k">Periodo pedido</span>
+                      <span className="al-v al-periodo">
+                        <b>{fFecha(s.fecha_inicio || (s.fechas || [])[0])}</b>
+                        <span className="al-arrow">→</span>
+                        <b>{fFecha(s.fecha_fin || (s.fechas || [])[(s.fechas || []).length - 1])}</b>
+                        <span className="chip-dias">{(s.fechas || []).length} día(s)</span>
+                      </span>
+                    </div>
+
+                    <div className="al-row">
+                      <span className="al-k">Motivo</span>
+                      <span className="al-v">
+                        <span className="pill neutro">{s.tipo_etiqueta}</span>
+                        {s.origen_atencion ? <span className="hint"> · {s.origen_atencion}</span> : null}
+                        {s.contexto_extra && <span className="sub">{s.contexto_extra}</span>}
+                      </span>
+                    </div>
+
+                    {Object.keys(s.banderas || {}).length > 0 && (
+                      <div className="al-row">
+                        <span className="al-k">Alertas</span>
+                        <span className="al-v">
+                          {Object.keys(s.banderas).map((b) => (
+                            <span key={b} className="pill mal" style={{ marginRight: 4 }}>{b}</span>
+                          ))}
+                        </span>
                       </div>
                     )}
                   </div>
-
-                  <h3>Periodo solicitado por el alumno</h3>
-                  <div className="exp-cards2">
-                    <div className="exp-card"><div className="exp-mini-label">Inicio</div><div className="exp-val">{fFecha(s.fecha_inicio || (s.fechas || [])[0])}</div></div>
-                    <div className="exp-card"><div className="exp-mini-label">Fin</div><div className="exp-val">{fFecha(s.fecha_fin || (s.fechas || [])[(s.fechas || []).length - 1])}</div></div>
-                    <div className="exp-card"><div className="exp-mini-label">Días pedidos</div><div className="exp-val">{(s.fechas || []).length}</div></div>
-                  </div>
-
-                  <h3>Motivo / detalle</h3>
-                  <p style={{ margin: 0 }}>
-                    <span className="pill neutro">{s.tipo_etiqueta}</span>
-                    {s.origen_atencion ? <span className="hint"> · {s.origen_atencion}</span> : null}
-                  </p>
-                  {s.contexto_extra && <p style={{ marginTop: 6 }}>{s.contexto_extra}</p>}
-                  {Object.keys(s.banderas || {}).length > 0 && (
-                    <p style={{ marginTop: 8 }}>
-                      {Object.keys(s.banderas).map((b) => <span key={b} className="pill mal" style={{ marginRight: 4 }}>{b}</span>)}
-                    </p>
-                  )}
                 </div>
 
                 <div className="exp-block">
