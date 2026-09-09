@@ -83,6 +83,19 @@ Una solicitud de ese grupo con fechas en lunes y/o martes rutea el oficio a esos
 - ✅ PDF del oficio para el alumno desde `/solicitud/<token>`.
 - ✅ Alertas de reventa: pestaña en Folios sobre `verificaciones_qr`.
 
+**Hecho en la sesión del 2026-09-09 (3ª parte)** — rediseño del formulario del alumno:
+- ✅ **Topbar** propio (logo FCCA + título + correo + Salir), sticky.
+- ✅ **Dos columnas**: izquierda los pasos numerados (1 Fechas · 2 Datos · 3 Motivo,
+  pills navy sustituidos por nº en círculo), derecha una tarjeta **«Resumen» fija**
+  (`position: sticky`) que se llena en vivo: grupo/expediente, matrícula/correo,
+  rango + días hábiles, motivo + checklist de comprobantes y aviso, y el botón Enviar.
+- ✅ Las 3 cajas de fecha (con la ámbar) → una **línea ligera** `Inicio … · Fin …` +
+  chip de días hábiles; el desglose completo vive en el Resumen.
+- ✅ Responsive: a ≤900px las columnas se apilan (Resumen y botón al final).
+- Clases nuevas en `styles.css`: `.just-topbar`, `.just-wrap`, `.just-grid`,
+  `.paso`/`.paso-num`, `.fechas-linea`/`.chip-dias`, `.just-resumen`/`.res-*`.
+  Se retiran del formulario `.sec-panel`/`.sec-head`/`.fechas-cards`/`.exp-cards`.
+
 **Hecho en la sesión del 2026-09-09 (2ª parte)** — acceso con grupo + reglas por modalidad:
 - ✅ **Semestre y sección en la pantalla de acceso** (`AlumnoLogin`), debajo del correo:
   dos `SelectorGrid` de selección **única**. El semestre solo muestra los del **periodo

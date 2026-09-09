@@ -32,6 +32,17 @@ function contarHabiles(inicio, fin, feriados, dias) {
   return n;
 }
 
+const ETIQUETA_ADJ = {
+  receta: 'Receta / Constancia (Obligatorio)',
+  ticket: 'Ticket de Compra / Pago (Obligatorio para privada)',
+  documento_medico: 'Documento del médico tratante con firma autógrafa (Obligatorio)',
+};
+const ETIQUETA_ADJ_CORTA = {
+  receta: 'Receta / constancia',
+  ticket: 'Ticket de pago',
+  documento_medico: 'Documento del médico',
+};
+
 export default function NuevaSolicitud() {
   const { alumno, setAlumnoToken } = useAuth();
   const nav = useNavigate();
@@ -46,7 +57,6 @@ export default function NuevaSolicitud() {
   const [enviando, setEnviando] = useState(false);
   const [hecho, setHecho] = useState(null);
 
-  // Grupo (semestre + sección) elegido en la pantalla de acceso.
   const grupo = useMemo(() => {
     try {
       const g = JSON.parse(localStorage.getItem(CLAVE_GRUPO) || 'null');
@@ -55,7 +65,7 @@ export default function NuevaSolicitud() {
     return null;
   }, []);
 
-  const [exp, setExp] = useState(null);        // resultado de /expediente
+  const [exp, setExp] = useState(null);
   const [expCargando, setExpCargando] = useState(true);
 
   useEffect(() => { api('/catalogos').then(setCat).catch((e) => setErr(e.message)); }, []);
@@ -95,12 +105,6 @@ export default function NuevaSolicitud() {
     ? cat.motivo.caso_especial_adjuntos
     : (esMedico && origenObj ? origenObj.adjuntos : []);
 
-  const ETIQUETA_ADJ = {
-    receta: 'Receta / Constancia (Obligatorio)',
-    ticket: 'Ticket de Compra / Pago (Obligatorio para privada)',
-    documento_medico: 'Documento del médico tratante con firma autógrafa (Obligatorio)',
-  };
-
   const modalidad = String(exp?.modalidad || '').toUpperCase();
   const modalidadLista = !expCargando;
   const esAbierta = modalidad && modalidad !== 'ESC';
@@ -109,23 +113,26 @@ export default function NuevaSolicitud() {
   const totalDias = contarHabiles(f.rango.inicio, f.rango.fin, cat.feriados || [], diasSemana);
   const fechasListas = !!(f.rango.inicio && f.rango.fin);
   const topeDias = cat.reglas.dias_maximos || 15;
+  const excede = !esCaso && totalDias > topeDias;
+
+  const motivoTxt = esCaso
+    ? 'Caso especial'
+    : (esMedico && origenObj ? `Médico · ${origenObj.etiqueta.split(' (')[0]}` : (esMedico ? 'Médico' : null));
 
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
 
   async function enviar(e) {
     e.preventDefault();
     setErr('');
-    if (!f.rango.inicio || !f.rango.fin) { setErr('Selecciona el rango de fechas (inicio y fin).'); return; }
-    if (!f.nombre.trim()) { setErr('Escribe tu nombre completo.'); return; }
-    if (!f.tipo) { setErr('Selecciona el tipo de justificante.'); return; }
-    if (esMedico && !f.origen) { setErr('Selecciona el origen de atención.'); return; }
-    if (!esCaso && totalDias > topeDias) {
-      setErr(`Solo puedes justificar hasta ${topeDias} días hábiles (elegiste ${totalDias}).`);
-      return;
-    }
-    if (!consentimiento) { setErr('Debes aceptar el Aviso de Privacidad.'); return; }
+    const fallo = (m) => { setErr(m); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+    if (!f.rango.inicio || !f.rango.fin) { fallo('Selecciona el rango de fechas (inicio y fin).'); return; }
+    if (!f.nombre.trim()) { fallo('Escribe tu nombre completo.'); return; }
+    if (!f.tipo) { fallo('Selecciona el tipo de justificante.'); return; }
+    if (esMedico && !f.origen) { fallo('Selecciona el origen de atención.'); return; }
+    if (excede) { fallo(`Solo puedes justificar hasta ${topeDias} días hábiles (elegiste ${totalDias}).`); return; }
+    if (!consentimiento) { fallo('Debes aceptar el Aviso de Privacidad.'); return; }
     for (const a of adjNecesarios) {
-      if (!archivos[a]) { setErr(`Falta adjuntar: ${ETIQUETA_ADJ[a] || a}`); return; }
+      if (!archivos[a]) { fallo(`Falta adjuntar: ${ETIQUETA_ADJ[a] || a}`); return; }
     }
     setEnviando(true);
     try {
@@ -143,6 +150,7 @@ export default function NuevaSolicitud() {
     } catch (e2) {
       if (e2.status === 401) { setAlumnoToken(null); nav('/solicitar/acceso'); return; }
       setErr(e2.message);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally {
       setEnviando(false);
     }
@@ -165,146 +173,204 @@ export default function NuevaSolicitud() {
   }
 
   return (
-    <div className="wrap-ancho form-just">
-      <div className="fila fila-sep" style={{ marginBottom: 12 }}>
-        <h1 style={{ margin: 0 }}>Solicitud de Justificante</h1>
-        <button className="plano mini" onClick={() => { setAlumnoToken(null); nav('/'); }}>Salir</button>
-      </div>
-      {err && <div className="aviso error">{err}</div>}
-
-      <form onSubmit={enviar}>
-        {/* ---------- FECHAS ---------- */}
-        <section className="sec-panel">
-          <div className="sec-head-row">
-            <span className="sec-head">FECHAS A JUSTIFICAR</span>
-            {cat.reglamento_url && (
-              <a className="sec-link" href={cat.reglamento_url} target="_blank" rel="noreferrer">
-                📄 Reglamento Oficial de Justificantes (UMSNH)
-              </a>
-            )}
+    <>
+      <header className="just-topbar">
+        <div className="just-topbar-in">
+          <img src="/fcca_vec.png" alt="FCCA" />
+          <span className="tb-title">Solicitud de Justificante</span>
+          <div className="tb-right">
+            <span className="tb-mail">{alumno?.email}</span>
+            <button type="button" className="plano mini" onClick={() => { setAlumnoToken(null); nav('/'); }}>Salir</button>
           </div>
-          <p className="hint">
-            Grupo <b>{nSem}° · Secc {grupo.seccion}</b>.{' '}
-            {!modalidadLista
-              ? 'Cargando la modalidad de tu grupo…'
-              : esAbierta
-                ? 'Modalidad abierta: cuentan de lunes a sábado (sin días inhábiles).'
-                : 'Modalidad escolarizada: cuentan de lunes a viernes (sin sábados ni días inhábiles).'}
-          </p>
-          <p className="hint">
-            Puedes justificar hasta {topeDias} días hábiles y dentro de {cat.reglas.dias_limite_solicitud} días
-            hábiles desde tu reincorporación (no aplica a caso especial).
-          </p>
+        </div>
+      </header>
 
-          {!modalidadLista ? (
-            <p>Cargando…</p>
-          ) : (
-            <div className="fechas-grid">
-              <RangoCalendario value={f.rango} onChange={(v) => set('rango', v)}
-                feriados={cat.feriados || []} diasSemana={diasSemana} />
-              <div className="fechas-cards">
-                <div className="fc"><div className="fc-rot">FECHA DE INICIO</div><div className="fc-val">{fmtFecha(f.rango.inicio)}</div></div>
-                <div className="fc"><div className="fc-rot">FECHA DE FIN</div><div className="fc-val">{fmtFecha(f.rango.fin)}</div></div>
-                <div className={`fc fc-total${!esCaso && totalDias > topeDias ? ' fc-mal' : ''}`}>
-                  <div className="fc-rot">TOTAL DÍAS HÁBILES A JUSTIFICAR</div>
-                  <div className="fc-val">{totalDias} día(s)</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </section>
+      <div className="just-wrap">
+        {err && <div className="aviso error">{err}</div>}
 
-        {!fechasListas ? (
-          <section className="sec-panel">
-            <p className="hint" style={{ margin: 0 }}>
-              Selecciona el rango de fechas para continuar con tu expediente y el motivo.
-            </p>
-          </section>
-        ) : (
-          <>
-            {/* ---------- EXPEDIENTE ---------- */}
-            <section className="sec-panel">
-              <span className="sec-head">EXPEDIENTE ACADÉMICO DEL ALUMNO</span>
-
-              <label style={{ marginTop: 12 }}>Nombre completo</label>
-              <input type="text" required value={f.nombre} onChange={(e) => set('nombre', e.target.value)} />
-
-              <div className="exp-cards" style={{ marginTop: 14 }}>
-                <div className="exp-card"><div className="exp-rot">MATRÍCULA</div><div className="exp-val">{matricula}</div></div>
-                <div className="exp-card"><div className="exp-rot">CORREO INSTITUCIONAL</div><div className="exp-val">{alumno?.email}</div></div>
-                <div className="exp-card"><div className="exp-rot">SEMESTRE Y SECCIÓN</div><div className="exp-val">{nSem}° · Secc {grupo.seccion}</div></div>
-                {exp?.encontrado ? (
-                  <>
-                    <div className="exp-card"><div className="exp-rot">LICENCIATURA</div><div className="exp-val">{exp.licenciatura_nombre}</div></div>
-                    <div className="exp-card"><div className="exp-rot">TURNO</div><div className="exp-val">{exp.turno_nombre}</div></div>
-                    <div className="exp-card"><div className="exp-rot">SALÓN</div><div className="exp-val">{exp.salon}</div></div>
-                    <div className="exp-card"><div className="exp-rot">MODALIDAD</div><div className="exp-val">{exp.modalidad_nombre}</div></div>
-                    {exp.periodo && (
-                      <div className="exp-card"><div className="exp-rot">PERIODO</div><div className="exp-val">{exp.periodo}</div></div>
-                    )}
-                  </>
-                ) : (
-                  <div className="exp-card" style={{ gridColumn: '1 / -1', background: '#fff7ed', borderColor: '#fdba74' }}>
-                    <div className="exp-val" style={{ color: '#b45309' }}>
-                      No pudimos cargar tu expediente automáticamente; la Secretaría lo verificará.
-                    </div>
-                  </div>
+        <form onSubmit={enviar} className="just-grid">
+          {/* ---------- columna izquierda: pasos ---------- */}
+          <div className="just-col">
+            <section className="paso">
+              <div className="paso-head">
+                <span className="paso-num">1</span>
+                <h2>Fechas a justificar</h2>
+                {cat.reglamento_url && (
+                  <a className="sec-link" href={cat.reglamento_url} target="_blank" rel="noreferrer">
+                    Reglamento (UMSNH) ↗
+                  </a>
                 )}
               </div>
+
+              {!modalidadLista ? (
+                <p>Cargando la modalidad de tu grupo…</p>
+              ) : (
+                <div className="fechas-grid">
+                  <RangoCalendario value={f.rango} onChange={(v) => set('rango', v)}
+                    feriados={cat.feriados || []} diasSemana={diasSemana} />
+                  <div className="fechas-info">
+                    <p className="hint" style={{ margin: 0 }}>
+                      Grupo <b>{nSem}° · Secc {grupo.seccion}</b>.{' '}
+                      {esAbierta
+                        ? 'Modalidad abierta: se cuentan de lunes a sábado (sin días inhábiles).'
+                        : 'Modalidad escolarizada: se cuentan de lunes a viernes (sin sábados ni días inhábiles).'}
+                    </p>
+                    <p className="hint" style={{ margin: 0 }}>
+                      Puedes justificar hasta <b>{topeDias} días hábiles</b> y solo dentro de{' '}
+                      <b>{cat.reglas.dias_limite_solicitud} días hábiles</b> desde tu reincorporación
+                      (no aplica a caso especial).
+                    </p>
+                    <div className="fechas-linea">
+                      <span>Inicio <b>{fmtFecha(f.rango.inicio)}</b></span>
+                      <span className="sep">·</span>
+                      <span>Fin <b>{fmtFecha(f.rango.fin)}</b></span>
+                      {fechasListas && (
+                        <span className={`chip-dias${excede ? ' mal' : ''}`}>{totalDias} día(s) hábiles</span>
+                      )}
+                    </div>
+                    {excede && (
+                      <p className="hint" style={{ margin: 0, color: 'var(--mal)' }}>
+                        Excede el máximo de {topeDias} días hábiles por solicitud.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </section>
 
-            {/* ---------- MOTIVO Y COMPROBANTES ---------- */}
-            <section className="sec-panel">
-              <span className="sec-head">MOTIVO Y COMPROBANTES</span>
+            {!fechasListas ? (
+              <section className="paso mudo">
+                <p>Elige el rango de fechas para continuar con tus datos y el motivo.</p>
+              </section>
+            ) : (
+              <>
+                <section className="paso">
+                  <div className="paso-head">
+                    <span className="paso-num">2</span>
+                    <h2>Datos del alumno</h2>
+                  </div>
+                  <label>Nombre completo</label>
+                  <input type="text" required value={f.nombre}
+                    onChange={(e) => set('nombre', e.target.value)}
+                    placeholder="Como aparece en tu credencial" />
+                  <p className="hint">Tu matrícula, correo y grupo se toman de tu acceso (ver Resumen).</p>
+                </section>
 
-              <label style={{ marginTop: 12 }}>Tipo de Justificante</label>
-              <select value={f.tipo} onChange={(e) => set('tipo', e.target.value)}>
-                <option value="">— Selecciona —</option>
-                {cat.motivo.tipos.map((t) => <option key={t.clave} value={t.clave}>{t.etiqueta}</option>)}
-              </select>
+                <section className="paso">
+                  <div className="paso-head">
+                    <span className="paso-num">3</span>
+                    <h2>Motivo y comprobantes</h2>
+                  </div>
 
-              {esMedico && (
-                <>
-                  <label>Origen de Atención</label>
-                  <select value={f.origen} onChange={(e) => set('origen', e.target.value)}>
+                  <label>Tipo de Justificante</label>
+                  <select value={f.tipo} onChange={(e) => set('tipo', e.target.value)}>
                     <option value="">— Selecciona —</option>
-                    {cat.motivo.origenes.map((o) => <option key={o.clave} value={o.clave}>{o.etiqueta}</option>)}
+                    {cat.motivo.tipos.map((t) => <option key={t.clave} value={t.clave}>{t.etiqueta}</option>)}
                   </select>
-                </>
-              )}
 
-              {esCaso && (
+                  {esMedico && (
+                    <>
+                      <label>Origen de Atención</label>
+                      <select value={f.origen} onChange={(e) => set('origen', e.target.value)}>
+                        <option value="">— Selecciona —</option>
+                        {cat.motivo.origenes.map((o) => <option key={o.clave} value={o.clave}>{o.etiqueta}</option>)}
+                      </select>
+                    </>
+                  )}
+
+                  {esCaso && (
+                    <>
+                      <label>Contexto (caso especial)</label>
+                      <textarea value={f.contexto_extra} onChange={(e) => set('contexto_extra', e.target.value)}
+                        placeholder="Describe la situación. Es posible que debas entregar el documento original en ventanilla." />
+                    </>
+                  )}
+
+                  {adjNecesarios.map((a) => (
+                    <div key={a}>
+                      <label>{ETIQUETA_ADJ[a] || a}</label>
+                      <input type="file" accept="image/*,application/pdf"
+                        onChange={(e) => setArchivos((s) => ({ ...s, [a]: e.target.files[0] }))} />
+                    </div>
+                  ))}
+
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 16, fontWeight: 400 }}>
+                    <input type="checkbox" style={{ width: 'auto', marginTop: 3 }}
+                      checked={consentimiento} onChange={(e) => setConsentimiento(e.target.checked)} />
+                    <span>
+                      {cat.textos?.aviso_corto || 'Autorizo el tratamiento de mis datos personales, incluidos datos de salud.'}
+                      {' '}<Link to="/aviso-de-privacidad" target="_blank">Ver Aviso de Privacidad</Link>.
+                    </span>
+                  </label>
+                </section>
+              </>
+            )}
+          </div>
+
+          {/* ---------- columna derecha: resumen fijo ---------- */}
+          <aside className="just-resumen">
+            <h2>Resumen</h2>
+
+            <div className="res-blk">
+              <div className="res-k">Grupo</div>
+              <div className="res-v">{nSem}° · Secc {grupo.seccion}</div>
+              {expCargando ? (
+                <div className="res-v mudo">Consultando expediente…</div>
+              ) : exp?.encontrado ? (
+                <div className="res-v mudo">
+                  {[exp.licenciatura_nombre, exp.turno_nombre, exp.salon, exp.modalidad_nombre].filter(Boolean).join(' · ')}
+                </div>
+              ) : (
+                <div className="res-v mudo">La Secretaría verificará el expediente.</div>
+              )}
+            </div>
+
+            <div className="res-blk">
+              <div className="res-k">Alumno</div>
+              <div className="res-v">
+                {f.nombre.trim() || <span className="mudo">Falta tu nombre</span>}
+              </div>
+              <div className="res-line"><span>Matrícula</span><span>{matricula}</span></div>
+              <div className="res-line"><span>Correo</span><span>{alumno?.email}</span></div>
+            </div>
+
+            <div className="res-blk">
+              <div className="res-k">Fechas</div>
+              {fechasListas ? (
                 <>
-                  <label>Contexto (caso especial)</label>
-                  <textarea value={f.contexto_extra} onChange={(e) => set('contexto_extra', e.target.value)}
-                    placeholder="Describe la situación. Es posible que debas entregar el documento original en ventanilla." />
+                  <div className="res-line"><span>Inicio</span><span>{fmtFecha(f.rango.inicio)}</span></div>
+                  <div className="res-line"><span>Fin</span><span>{fmtFecha(f.rango.fin)}</span></div>
+                  <div className="res-line">
+                    <span>Días hábiles</span>
+                    <span style={{ color: excede ? 'var(--mal)' : undefined }}>{totalDias}</span>
+                  </div>
                 </>
+              ) : (
+                <div className="res-v mudo">Elige el rango de fechas</div>
               )}
+            </div>
 
+            <div className="res-blk">
+              <div className="res-k">Motivo</div>
+              {motivoTxt ? <div className="res-v">{motivoTxt}</div> : <div className="res-v mudo">Sin seleccionar</div>}
               {adjNecesarios.map((a) => (
-                <div key={a}>
-                  <label>{ETIQUETA_ADJ[a] || a}</label>
-                  <input type="file" accept="image/*,application/pdf"
-                    onChange={(e) => setArchivos((s) => ({ ...s, [a]: e.target.files[0] }))} />
+                <div key={a} className={`res-check${archivos[a] ? ' ok' : ''}`}>
+                  <i>{archivos[a] ? '✓' : ''}</i>{ETIQUETA_ADJ_CORTA[a] || a}
                 </div>
               ))}
+              <div className={`res-check${consentimiento ? ' ok' : ''}`}>
+                <i>{consentimiento ? '✓' : ''}</i>Aviso de privacidad
+              </div>
+            </div>
 
-              <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 16, fontWeight: 400 }}>
-                <input type="checkbox" style={{ width: 'auto', marginTop: 3 }}
-                  checked={consentimiento} onChange={(e) => setConsentimiento(e.target.checked)} />
-                <span>
-                  {cat.textos?.aviso_corto || 'Autorizo el tratamiento de mis datos personales, incluidos datos de salud.'}
-                  {' '}<Link to="/aviso-de-privacidad" target="_blank">Ver Aviso de Privacidad</Link>.
-                </span>
-              </label>
-            </section>
+            {err && <div className="aviso error">{err}</div>}
 
-            <button className="btn-enviar" disabled={enviando}>
-              {enviando ? 'Enviando…' : 'Enviar Solicitud de Justificante'}
+            <button className="btn-enviar" disabled={enviando || !fechasListas}>
+              {enviando ? 'Enviando…' : 'Enviar solicitud'}
             </button>
-          </>
-        )}
-      </form>
-    </div>
+          </aside>
+        </form>
+      </div>
+    </>
   );
 }
