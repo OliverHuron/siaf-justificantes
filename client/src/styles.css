@@ -693,7 +693,20 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 .msg.staff { background: var(--navy-ghost); align-self: flex-end; }
 .msg .quien { font-size: .72rem; color: var(--gris); margin-bottom: 2px; }
 
-.evidencia img { max-width: 100%; border: 1px solid var(--borde); border-radius: 8px; }
+/* visor de adjuntos (receta / ticket): imagen o PDF */
+.adj-visor { display: flex; flex-direction: column; gap: 6px; }
+.adj-visor-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adj-visor-top a { font-size: .82rem; font-weight: 700; }
+.adj-visor-box {
+  height: 440px; border: 1px solid var(--borde); border-radius: 10px;
+  background: #1e293b; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.adj-visor-box a { display: flex; max-width: 100%; max-height: 100%; }
+.adj-visor-box img { max-width: 100%; max-height: 440px; object-fit: contain; display: block; }
+.adj-visor-box iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+.adj-visor-box .hint { color: #cbd5e1; }
+@media (max-width: 860px) { .adj-visor-box { height: 340px; } }
 .mono { font-family: ui-monospace, Menlo, Consolas, monospace; }
 code { background: var(--gris-suave); padding: 1px 5px; border-radius: 4px; font-size: .85em; }
 .doc { max-width: 760px; }
