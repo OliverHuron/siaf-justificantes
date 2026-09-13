@@ -10,6 +10,11 @@ const ORD_NUM = {
   sexto: 6, septimo: 7, 'séptimo': 7, octavo: 8, noveno: 9,
 };
 const numSemestre = (c, e) => ORD_NUM[c] ?? ORD_NUM[e] ?? Number(c) ?? c;
+const ORD_TEXTO = {
+  1: 'Primer semestre', 2: 'Segundo semestre', 3: 'Tercer semestre', 4: 'Cuarto semestre',
+  5: 'Quinto semestre', 6: 'Sexto semestre', 7: 'Séptimo semestre', 8: 'Octavo semestre', 9: 'Noveno semestre',
+};
+const semestreTexto = (n) => ORD_TEXTO[n] || `${n}° semestre`;
 const fmtFecha = (s) => (s ? s.split('-').reverse().join('/') : 'sin definir');
 
 const p2 = (n) => String(n).padStart(2, '0');
@@ -310,13 +315,14 @@ export default function NuevaSolicitud() {
 
             <div className="res-blk">
               <div className="res-k">Grupo</div>
-              <div className="res-v">{nSem}° · Secc {grupo.seccion}</div>
+              <div className="res-v">{semestreTexto(nSem)}</div>
+              <div className="res-v">Sección {grupo.seccion}</div>
               {expCargando ? (
                 <div className="res-v mudo">Consultando expediente…</div>
               ) : exp?.encontrado ? (
                 <span className="al-meta-badges">
-                  {(exp.licenciatura || exp.licenciatura_nombre) && (
-                    <span className="mbadge mb-lic">{exp.licenciatura || exp.licenciatura_nombre}</span>
+                  {(exp.licenciatura_nombre || exp.licenciatura) && (
+                    <span className="mbadge mb-lic">{exp.licenciatura_nombre || exp.licenciatura}</span>
                   )}
                   {exp.turno_nombre && exp.turno !== exp.modalidad && (
                     <span className="mbadge mb-turno">{exp.turno_nombre}</span>
