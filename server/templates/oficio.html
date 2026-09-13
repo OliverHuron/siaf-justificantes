@@ -25,53 +25,56 @@
   }
   .logo-fcca {
     position: absolute;
-    top: 28px;
+    top: 48px;
     right: 110px;
     width: 62px;
     height: 60px;
   }
   .content {
     position: absolute;
-    top: 118px;
+    top: 110px;
     left: 70px;
     right: 70px;
   }
   .institution-title {
     text-align: right;
-    font-size: 13px;
+    font-size: 11px;
     font-weight: bold;
-    line-height: 1.15;
-    margin-bottom: 42px;
+    line-height: 1.35;
+    margin-bottom: 20px;
   }
   .date-line {
     text-align: right;
     font-weight: bold;
-    margin-bottom: 36px;
+    margin-bottom: 5px;
+  }
+  .fecha {
+    margin-bottom: 40px;
   }
   .date-line .fecha {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.3;
   }
   .date-line .folio-num {
-    font-size: 15px;
-    margin-top: 10px;
+    font-size: 16px;
+    margin-top: 1px;
   }
   .addressee {
-    font-size: 15px;
+    font-size: 16.5px;
     font-weight: bold;
     line-height: 1.2;
-    margin-bottom: 30px;
+    margin-bottom: 50px;
   }
   .body-text {
-    font-size: 18.5px;
+    font-size: 17px;
     line-height: 1.6;
     text-align: justify;
     text-indent: 34px;
-    margin-bottom: 22px;
+    margin-bottom: 12px;
   }
   .body-text b { font-weight: bold; }
   .closing {
-    font-size: 19px;
+    font-size: 17px;
     margin-bottom: 40px;
     margin-left: 45px;
   }
@@ -84,6 +87,12 @@
     font-size: 16px;
     margin-bottom: 0;
   }
+  .atte {
+    position: absolute;
+    top: 510px;
+    left: 5px;
+    right: 25px;
+  }
   .firma-img {
     width: 210px;
     display: block;
@@ -91,15 +100,22 @@
   }
   .signature-block .name {
     font-weight: bold;
-    font-size: 19px;
+    font-size: 16px;
     margin-top: 0;
   }
   .signature-block .role {
-    font-size: 19px;
+    font-size: 16px;
+  }
+  .role {
+    font-weight: bold;
   }
   .footer-code {
     font-size: 17px;
-    margin-top: 30px;
+    position: absolute;
+    bottom: -90px;
+    left: 10px;
+    right: 70px;
+    font-weight: bold;
   }
   .validacion {
     position: absolute;
@@ -138,7 +154,8 @@
       <div class="addressee">
         {{destinatario}}<br>
         Facultad de Contaduría y Ciencias Administrativas<br>
-        Universidad Michoacana de San Nicolás de Hidalgo
+        Universidad Michoacana de San Nicolás de Hidalgo<br>
+        Presente
       </div>
 
       <div class="body-text">
