@@ -318,7 +318,9 @@ export default function NuevaSolicitud() {
                   {(exp.licenciatura || exp.licenciatura_nombre) && (
                     <span className="mbadge mb-lic">{exp.licenciatura || exp.licenciatura_nombre}</span>
                   )}
-                  {exp.turno_nombre && <span className="mbadge mb-turno">{exp.turno_nombre}</span>}
+                  {exp.turno_nombre && exp.turno !== exp.modalidad && (
+                    <span className="mbadge mb-turno">{exp.turno_nombre}</span>
+                  )}
                   {exp.salon && <span className="mbadge mb-salon">{exp.salon}</span>}
                   {exp.modalidad_nombre && <span className="mbadge mb-mod">{exp.modalidad_nombre}</span>}
                 </span>

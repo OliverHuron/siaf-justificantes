@@ -221,7 +221,9 @@ export default function ExpedienteModal() {
                           {(g.licenciatura || g.turno || g.salon || g.modalidad) && (
                             <span className="al-meta-badges">
                               {g.licenciatura && <span className="mbadge mb-lic">{g.licenciatura}</span>}
-                              {g.turno && <span className="mbadge mb-turno">{g.turno}</span>}
+                              {g.turno && g.turno !== g.modalidad && (
+                                <span className="mbadge mb-turno">{g.turno}</span>
+                              )}
                               {g.salon && <span className="mbadge mb-salon">{g.salon}</span>}
                               {g.modalidad && <span className="mbadge mb-mod">{g.modalidad}</span>}
                             </span>
