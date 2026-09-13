@@ -162,9 +162,10 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
         throw new ApiError(400, `Solo se pueden justificar hasta ${diasMaximos} días hábiles por solicitud (seleccionaste ${fechasHabiles.length}).`);
       }
       // El plazo de 10 días para justificar corre en días hábiles administrativos
-      // (lunes a viernes), sin importar la modalidad del grupo.
+      // (lunes a viernes), sin importar la modalidad del grupo. El día de
+      // reincorporación cuenta como el día 1 del plazo (no el día después).
       const reincorporacion = siguienteDiaHabil(fechaFin, feriados);
-      const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados);
+      const transcurridos = diasHabilesEntre(fechaFin, hoy, feriados);
       if (transcurridos > diasLimite) {
         throw new ApiError(409,
           `Fuera de plazo: desde tu reincorporación (${reincorporacion}) ya pasaron ${transcurridos} días hábiles (máx. ${diasLimite}).`);

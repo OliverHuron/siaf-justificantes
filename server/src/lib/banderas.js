@@ -29,9 +29,10 @@ async function calcular(s, reglas = {}) {
   if (!exento && s.fecha_inicio && s.fecha_fin) {
     const hoy = iso(new Date());
     // fuera_de_ventana: el plazo de 10 días corre en días hábiles administrativos
-    // (lunes a viernes), sin importar la modalidad del grupo.
+    // (lunes a viernes), sin importar la modalidad del grupo. El día de
+    // reincorporación cuenta como el día 1 del plazo (no el día después).
     const reincorporacion = siguienteDiaHabil(s.fecha_fin, feriados);
-    const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados);
+    const transcurridos = diasHabilesEntre(s.fecha_fin, hoy, feriados);
     if (reglas.diasLimite && transcurridos > reglas.diasLimite) {
       banderas.fuera_de_ventana = { reincorporacion, transcurridos, limite: reglas.diasLimite };
     }
