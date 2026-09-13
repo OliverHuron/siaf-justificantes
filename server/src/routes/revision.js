@@ -14,7 +14,7 @@ const pdfLib = require('../lib/pdf');
 const plantillas = require('../lib/plantillas');
 const mailer = require('../lib/mailer');
 const bitacora = require('../lib/bitacora');
-const { fechaOficio, textoDias } = require('../lib/dias');
+const { fechaOficio, textoDias, inicioPeriodoActual } = require('../lib/dias');
 const { rutaAbsoluta, DIR_FOLIOS } = require('../lib/storage');
 const { asegurarPdf } = require('../lib/oficio');
 
@@ -133,7 +133,8 @@ router.get('/:id', puedeLeer, async (req, res, next) => {
     const s = await cargarSolicitud(req.params.id);
     if (!s) throw new ApiError(404, 'Solicitud no encontrada');
 
-    const [adj, hilo, hist, profFrozen, folioRow] = await Promise.all([
+    const inicioPeriodo = inicioPeriodoActual();
+    const [adj, hilo, hist, profFrozen, folioRow, periodoRow] = await Promise.all([
       db.query(`SELECT id, tipo, nombre_original, mime, tamano, subido_en FROM adjuntos WHERE solicitud_id = $1 ORDER BY id`, [s.id]),
       db.query(`SELECT autor, autor_usuario, cuerpo, creado_en FROM mensajes WHERE solicitud_id = $1 ORDER BY creado_en`, [s.id]),
       db.query(
@@ -145,6 +146,17 @@ router.get('/:id', puedeLeer, async (req, res, next) => {
       ),
       db.query(`SELECT materia, profesor_nombre, profesor_correo, incluir, origen, enviado_en FROM solicitud_profesores WHERE solicitud_id = $1 ORDER BY materia`, [s.id]),
       db.query(`SELECT folio FROM folios WHERE solicitud_id = $1`, [s.id]),
+      // Días ya justificados (aprobados) por esta matrícula en el periodo semestral en
+      // curso; informativo para la encargada, no bloquea nada. Caso especial no cuenta
+      // (está exento de las reglas de fecha).
+      db.query(
+        `SELECT coalesce(sum(cardinality(coalesce(fechas_aprobadas, fechas))), 0)::int AS dias
+           FROM solicitudes
+          WHERE upper(matricula_declarada) = upper($1)
+            AND estado = 'aprobada' AND tipo <> 'caso_especial'
+            AND decidido_en >= $2::date`,
+        [s.matricula_declarada, inicioPeriodo]
+      ),
     ]);
 
     let profesores = profFrozen.rows;
@@ -164,6 +176,7 @@ router.get('/:id', puedeLeer, async (req, res, next) => {
       hilo: hilo.rows,
       historial_matricula: hist.rows,
       profesores,
+      periodo_matricula: { inicio: inicioPeriodo, dias_usados: periodoRow.rows[0].dias },
     });
   } catch (e) {
     next(e);

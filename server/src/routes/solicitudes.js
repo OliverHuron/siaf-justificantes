@@ -149,8 +149,9 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
     });
     const exp = expedientes[0] && expedientes[0].encontrado ? expedientes[0] : { encontrado: false };
 
-    // Días hábiles de la semana según la modalidad del grupo principal:
-    // ESC (escolarizada) = lun–vie; ABI (abierta) / otra = lun–sáb.
+    // Días de la semana en que el grupo tiene clase, según su modalidad
+    // (define qué fechas se pueden justificar): ESC = lun-vie; ABI = solo
+    // sábado (la FCCA solo agenda esos grupos los sábados); LINEA/otra = lun-sáb.
     const diasSemana = diasSemanaDeModalidad(exp.encontrado ? exp.modalidad : null);
 
     const fechasHabiles = expandirRangoHabil(fechaInicio, fechaFin, feriados, diasSemana);
@@ -160,8 +161,10 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
       if (fechasHabiles.length > diasMaximos) {
         throw new ApiError(400, `Solo se pueden justificar hasta ${diasMaximos} días hábiles por solicitud (seleccionaste ${fechasHabiles.length}).`);
       }
-      const reincorporacion = siguienteDiaHabil(fechaFin, feriados, diasSemana);
-      const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados, diasSemana);
+      // El plazo de 10 días para justificar corre en días hábiles administrativos
+      // (lunes a viernes), sin importar la modalidad del grupo.
+      const reincorporacion = siguienteDiaHabil(fechaFin, feriados);
+      const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados);
       if (transcurridos > diasLimite) {
         throw new ApiError(409,
           `Fuera de plazo: desde tu reincorporación (${reincorporacion}) ya pasaron ${transcurridos} días hábiles (máx. ${diasLimite}).`);
@@ -190,7 +193,7 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
     const tokSeg = token(24);
     const flags = await banderas.calcular(
       { matricula, tipo, fechas: fechasOrdenadas, semestres, secciones, fecha_inicio: fechaInicio, fecha_fin: fechaFin },
-      { diasLimite, diasMaximos, exento: motivo.exento, feriados, diasSemana }
+      { diasLimite, diasMaximos, exento: motivo.exento, feriados, diasSemanaClases: diasSemana }
     );
 
     const creada = await db.withTransaction(async (client) => {

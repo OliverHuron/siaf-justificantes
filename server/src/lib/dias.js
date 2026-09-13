@@ -33,15 +33,34 @@ function normDias(dias) {
 }
 
 /**
- * Días de la semana hábiles según la modalidad del grupo:
+ * Días de la semana en los que un grupo SÍ tiene clase, según su modalidad
+ * (esto es lo que se puede seleccionar/justificar; no confundir con los
+ * "días hábiles" del plazo administrativo de 10 días, que siempre son
+ * lunes a viernes sin importar la modalidad — ver `diasHabilesEntre` /
+ * `siguienteDiaHabil` sin el argumento `dias`):
  *  - ESC (escolarizada): lunes a viernes.
- *  - ABI (abierta) / cualquier otra: lunes a sábado.
+ *  - ABI (abierta): la FCCA solo agenda estos grupos los sábados.
+ *  - LINEA / cualquier otra: sin horario fijo; se deja lunes a sábado.
  */
 function diasSemanaDeModalidad(modalidad) {
   const m = String(modalidad || '').trim().toUpperCase();
-  return m === 'ESC' || m === 'ESCOLARIZADO' || m === 'ESCOLARIZADA'
-    ? [1, 2, 3, 4, 5]
-    : [1, 2, 3, 4, 5, 6];
+  if (m === 'ESC' || m === 'ESCOLARIZADO' || m === 'ESCOLARIZADA') return [1, 2, 3, 4, 5];
+  if (m === 'ABI' || m === 'ABIERTO' || m === 'ABIERTA') return [6];
+  return [1, 2, 3, 4, 5, 6];
+}
+
+/**
+ * Inicio del periodo semestral en curso (para contadores que reinician cada
+ * semestre): 1 de agosto si la fecha cae entre el 2-ago y el 30-ene, o
+ * 1 de febrero si cae entre el 1-feb y el 1-ago. Devuelve fecha ISO.
+ */
+function inicioPeriodoActual(fecha = new Date()) {
+  const y = fecha.getFullYear();
+  const mes = fecha.getMonth(); // 0-based
+  const dia = fecha.getDate();
+  const esPar = (mes >= 1 && mes < 7) || (mes === 7 && dia <= 1); // 1-feb .. 1-ago
+  if (esPar) return `${y}-02-01`;
+  return mes >= 7 ? `${y}-08-01` : `${y - 1}-08-01`;
 }
 
 /**
@@ -157,5 +176,5 @@ function fechaOficio(d = new Date()) {
 
 module.exports = {
   MESES, diasHabilesEntre, dentroDeVentana, textoDias, diaSemanaIso, fechaOficio, iso, aFecha,
-  diasNaturales, expandirRangoHabil, siguienteDiaHabil, diasSemanaDeModalidad,
+  diasNaturales, expandirRangoHabil, siguienteDiaHabil, diasSemanaDeModalidad, inicioPeriodoActual,
 };

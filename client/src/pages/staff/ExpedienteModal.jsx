@@ -146,6 +146,16 @@ export default function ExpedienteModal() {
                   )}
                 </div>
 
+                {d.periodo_matricula && (
+                  <div className="exp-block" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span className="al-k" style={{ flex: '0 0 auto' }}>Días usados este periodo</span>
+                    <span className={`pill ${d.periodo_matricula.dias_usados >= 15 ? 'alerta' : 'neutro'}`}>
+                      {d.periodo_matricula.dias_usados} de 15
+                    </span>
+                    <span className="hint" style={{ margin: 0 }}>desde {fFecha(d.periodo_matricula.inicio)} · informativo, no bloquea el envío</span>
+                  </div>
+                )}
+
                 <details className="exp-acc">
                   <summary>Historial de la matrícula ({d.historial_matricula.length})</summary>
                   <div className="exp-acc-body">

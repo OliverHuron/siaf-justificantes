@@ -10,7 +10,7 @@ const MATRICULA_RE = /^\d{7}[A-Za-z]$/; // 7 dígitos + letra (formato observado
  * marca lo que la encargada debe mirar con atención (PLAN §8).
  *
  * @param {object} s  { matricula, tipo, fechas: string[], semestres, secciones, fecha_inicio, fecha_fin }
- * @param {object} reglas  { diasLimite, diasMaximos, exento, feriados, diasSemana }
+ * @param {object} reglas  { diasLimite, diasMaximos, exento, feriados, diasSemanaClases }
  * @returns {object} banderas -> { clave: {detalle} }
  */
 async function calcular(s, reglas = {}) {
@@ -28,15 +28,15 @@ async function calcular(s, reglas = {}) {
 
   if (!exento && s.fecha_inicio && s.fecha_fin) {
     const hoy = iso(new Date());
-    const dias = reglas.diasSemana; // lun–vie / lun–sáb según modalidad
-    // fuera_de_ventana: pasaron más de N días hábiles desde la reincorporación
-    const reincorporacion = siguienteDiaHabil(s.fecha_fin, feriados, dias);
-    const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados, dias);
+    // fuera_de_ventana: el plazo de 10 días corre en días hábiles administrativos
+    // (lunes a viernes), sin importar la modalidad del grupo.
+    const reincorporacion = siguienteDiaHabil(s.fecha_fin, feriados);
+    const transcurridos = diasHabilesEntre(reincorporacion, hoy, feriados);
     if (reglas.diasLimite && transcurridos > reglas.diasLimite) {
       banderas.fuera_de_ventana = { reincorporacion, transcurridos, limite: reglas.diasLimite };
     }
-    // excede_maximo: el nº de días hábiles del rango supera el tope
-    const total = expandirRangoHabil(s.fecha_inicio, s.fecha_fin, feriados, dias).length;
+    // excede_maximo: el nº de días CON CLASE (según modalidad) del rango supera el tope
+    const total = expandirRangoHabil(s.fecha_inicio, s.fecha_fin, feriados, reglas.diasSemanaClases).length;
     if (reglas.diasMaximos && total > reglas.diasMaximos) {
       banderas.excede_maximo = { total, maximo: reglas.diasMaximos };
     }

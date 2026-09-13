@@ -112,8 +112,11 @@ export default function NuevaSolicitud() {
 
   const modalidad = String(exp?.modalidad || '').toUpperCase();
   const modalidadLista = !expCargando;
-  const esAbierta = modalidad && modalidad !== 'ESC';
-  const diasSemana = esAbierta ? [1, 2, 3, 4, 5, 6] : [1, 2, 3, 4, 5];
+  const esAbierta = modalidad === 'ABI';
+  const esEscolarizada = modalidad === 'ESC';
+  // ESC = lunes a viernes; ABI = la FCCA solo agenda esos grupos los sábados;
+  // LINEA/otra = sin horario fijo, se deja lunes a sábado.
+  const diasSemana = esEscolarizada ? [1, 2, 3, 4, 5] : esAbierta ? [6] : [1, 2, 3, 4, 5, 6];
 
   const totalDias = contarHabiles(f.rango.inicio, f.rango.fin, cat.feriados || [], diasSemana);
   const fechasListas = !!(f.rango.inicio && f.rango.fin);
@@ -213,9 +216,11 @@ export default function NuevaSolicitud() {
                   <div className="fechas-info">
                     <p className="hint" style={{ margin: 0 }}>
                       Grupo <b>{nSem}° · Secc {grupo.seccion}</b>.{' '}
-                      {esAbierta
-                        ? 'Modalidad abierta: se cuentan de lunes a sábado (sin días inhábiles).'
-                        : 'Modalidad escolarizada: se cuentan de lunes a viernes (sin sábados ni días inhábiles).'}
+                      {esEscolarizada
+                        ? 'Modalidad escolarizada: solo se pueden elegir días de lunes a viernes.'
+                        : esAbierta
+                          ? 'Modalidad abierta: tu grupo solo tiene clase los sábados.'
+                          : 'Sin horario fijo: se dejan disponibles de lunes a sábado.'}
                     </p>
                     <p className="hint" style={{ margin: 0 }}>
                       Puedes justificar hasta <b>{topeDias} días hábiles</b> y solo dentro de{' '}
