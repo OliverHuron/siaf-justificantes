@@ -123,7 +123,7 @@ export default function Usuarios() {
       <Aviso err={err} ok={ok} />
       <div className="card">
         <h3>Nuevo usuario</h3>
-        <div className="fila">
+        <div className="form-grid">
           <input type="text" placeholder="usuario" value={n.usuario} onChange={(e) => setN({ ...n, usuario: e.target.value })} />
           <input type="text" placeholder="nombre" value={n.nombre} onChange={(e) => setN({ ...n, nombre: e.target.value })} />
           <input type="email" placeholder="email" value={n.email} onChange={(e) => setN({ ...n, email: e.target.value })} />
@@ -132,6 +132,8 @@ export default function Usuarios() {
           </select>
           <input type="password" placeholder="contraseña (opcional)" value={n.password}
             onChange={(e) => setN({ ...n, password: e.target.value })} />
+        </div>
+        <div className="fila" style={{ marginTop: 12 }}>
           <button className="mini" onClick={crear}>Crear</button>
         </div>
         <p className="hint">Si dejas la contraseña en blanco, se asigna la temporal por defecto (123456).</p>

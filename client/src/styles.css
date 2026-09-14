@@ -81,6 +81,12 @@ button.mini, .btn.mini { padding: 5px 11px; font-size: .82rem; }
 
 .fila { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .fila-sep { justify-content: space-between; }
+
+/* formularios cortos (p. ej. "Nuevo usuario") en 3 columnas: en pantallas
+   anchas .fila estira cada input a todo el ancho y quedan apilados. */
+.form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 12px; align-items: center; }
+@media (max-width: 900px) { .form-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .form-grid { grid-template-columns: 1fr; } }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
 
