@@ -117,9 +117,12 @@ export default function AlumnoLogin() {
 
           <label>Matrícula</label>
           <CampoIcono icono="correo" type="text" value={matricula} required autoFocus
-            maxLength={8} placeholder="2211930X" sufijo={dominio}
+            maxLength={8} placeholder="1234567A" sufijo={dominio}
+            onKeyDown={(ev) => {
+              if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.key.length !== 1) return;
+              if (!/^[0-9a-zA-Z]$/.test(ev.key)) ev.preventDefault();
+            }}
             onChange={(ev) => setMatricula(ev.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 8))} />
-          <p className="hint">7 números y 1 letra, sin el correo.</p>
 
           <div className="login-grupo">
             <div className="login-grupo-f">
