@@ -119,6 +119,17 @@ tr.clic:hover { background: #f8f9fb; }
 .tabla-siaf tbody td { padding: 11px 12px; }
 td.nowrap, th.nowrap { white-space: nowrap; }
 
+/* inputs/select editables dentro de una fila de tabla (p. ej. Usuarios) */
+.tabla-input {
+  width: 100%; padding: 5px 8px; font-size: .88rem;
+  border: 1px solid transparent; border-radius: 6px; background: transparent;
+}
+.tabla-input:hover { border-color: var(--borde); background: #fff; }
+.tabla-input:focus {
+  outline: none; border-color: var(--navy-2); background: #fff;
+  box-shadow: 0 0 0 3px var(--navy-ghost);
+}
+
 /* botones-icono (bandeja: ver receta / ticket) */
 .icono-grupo { display: flex; gap: 6px; align-items: center; }
 .icono-btn {

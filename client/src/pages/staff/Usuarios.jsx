@@ -19,11 +19,11 @@ function FilaUsuario({ u, onGuardar, onEliminar, onCambiarPassword, onResetTempo
   return (
     <>
       <tr>
-        <td><input value={f.usuario} onChange={(e) => setF({ ...f, usuario: e.target.value })} /></td>
-        <td><input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} /></td>
-        <td><input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></td>
+        <td><input type="text" className="tabla-input" value={f.usuario} onChange={(e) => setF({ ...f, usuario: e.target.value })} /></td>
+        <td><input type="text" className="tabla-input" value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} /></td>
+        <td><input type="text" className="tabla-input" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></td>
         <td>
-          <select value={f.rol} onChange={(e) => setF({ ...f, rol: e.target.value })}>
+          <select className="tabla-input" value={f.rol} onChange={(e) => setF({ ...f, rol: e.target.value })}>
             {ROLES.map((r) => <option key={r}>{r}</option>)}
           </select>
         </td>
@@ -121,21 +121,6 @@ export default function Usuarios() {
   return (
     <div>
       <Aviso err={err} ok={ok} />
-      <div className="card tabla-scroll">
-        <table>
-          <thead>
-            <tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th></th></tr>
-          </thead>
-          <tbody>
-            {lista.map((u) => (
-              <FilaUsuario key={u.id} u={u} onGuardar={guardar} onEliminar={eliminar}
-                onCambiarPassword={cambiarPassword} onResetTemporal={resetTemporal}
-                onToggleActivo={toggleActivo} />
-            ))}
-            {lista.length === 0 && <tr><td colSpan={6} className="hint">Sin usuarios.</td></tr>}
-          </tbody>
-        </table>
-      </div>
       <div className="card">
         <h3>Nuevo usuario</h3>
         <div className="fila">
@@ -150,6 +135,21 @@ export default function Usuarios() {
           <button className="mini" onClick={crear}>Crear</button>
         </div>
         <p className="hint">Si dejas la contraseña en blanco, se asigna la temporal por defecto (123456).</p>
+      </div>
+      <div className="card tabla-scroll">
+        <table>
+          <thead>
+            <tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            {lista.map((u) => (
+              <FilaUsuario key={u.id} u={u} onGuardar={guardar} onEliminar={eliminar}
+                onCambiarPassword={cambiarPassword} onResetTemporal={resetTemporal}
+                onToggleActivo={toggleActivo} />
+            ))}
+            {lista.length === 0 && <tr><td colSpan={6} className="hint">Sin usuarios.</td></tr>}
+          </tbody>
+        </table>
       </div>
     </div>
   );
