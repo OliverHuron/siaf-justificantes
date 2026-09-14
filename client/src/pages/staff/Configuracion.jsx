@@ -212,7 +212,7 @@ function Horarios() {
       </div>
       <div className="card">
         <h3>Agregar horario</h3>
-        <div className="fila">
+        <div className="form-grid">
           {['ciclo_escolar', 'semestre', 'seccion', 'materia', 'profesor_nombre', 'profesor_correo'].map((k) => (
             <input key={k} type="text" placeholder={k} value={n[k]} onChange={(e) => setN({ ...n, [k]: e.target.value })} />
           ))}
@@ -221,6 +221,8 @@ function Horarios() {
               <option key={i} value={i + 1}>{d}</option>
             ))}
           </select>
+        </div>
+        <div className="fila" style={{ marginTop: 12 }}>
           <button className="mini" onClick={agregar}>Agregar</button>
         </div>
       </div>
