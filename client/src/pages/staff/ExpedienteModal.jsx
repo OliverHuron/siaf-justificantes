@@ -9,11 +9,31 @@ const PILL = {
   pendiente: 'alerta', aprobada: 'ok', rechazada: 'mal',
   requiere_ventanilla: 'azul', cancelada: 'neutro',
 };
-const ORD_SEM = {
-  primero: '1°', segundo: '2°', tercero: '3°', cuarto: '4°', quinto: '5°',
-  sexto: '6°', septimo: '7°', 'séptimo': '7°', octavo: '8°', noveno: '9°',
+const ORD_NUM = {
+  primero: 1, segundo: 2, tercero: 3, cuarto: 4, quinto: 5,
+  sexto: 6, septimo: 7, 'séptimo': 7, octavo: 8, noveno: 9,
 };
-const semLabel = (v) => ORD_SEM[String(v).toLowerCase()] || (/^\d+$/.test(String(v)) ? `${v}°` : v);
+const ORD_TEXTO = {
+  1: 'Primer semestre', 2: 'Segundo semestre', 3: 'Tercer semestre', 4: 'Cuarto semestre',
+  5: 'Quinto semestre', 6: 'Sexto semestre', 7: 'Séptimo semestre', 8: 'Octavo semestre', 9: 'Noveno semestre',
+};
+const numSemestre = (v) => ORD_NUM[String(v).toLowerCase()] ?? (/^\d+$/.test(String(v)) ? Number(v) : v);
+const semLabel = (v) => ORD_TEXTO[numSemestre(v)] || `${v}° semestre`;
+
+// Mismos catálogos que server/src/lib/expediente.js, para mostrar el código
+// completo en el expediente sin depender de que la solicitud se haya
+// congelado con los nombres largos (solicitudes viejas solo tienen el código).
+const LICENCIATURAS = {
+  LIA: 'Licenciatura en Informática Administrativa',
+  LC: 'Licenciatura en Contaduría',
+  LA: 'Licenciatura en Administración',
+  LM: 'Licenciatura en Mercadotecnia',
+};
+const TURNOS = { MAT: 'Matutino', VESP: 'Vespertino', ABI: 'Abierto', LINEA: 'En línea' };
+const MODALIDADES = { ESC: 'Escolarizado', ABI: 'Abierto', LINEA: 'En línea', 'LÍNEA': 'En línea' };
+const nombreLic = (c) => LICENCIATURAS[String(c || '').toUpperCase()] || c || '';
+const nombreTurno = (c) => TURNOS[String(c || '').toUpperCase()] || c || '';
+const nombreModalidad = (c) => MODALIDADES[String(c || '').toUpperCase()] || c || '';
 const fFecha = (s) => {
   const d = String(s || '').slice(0, 10).split('-');
   return d.length === 3 ? `${d[2]}/${d[1]}/${d[0]}` : (s || 'sin dato');
@@ -227,15 +247,16 @@ export default function ExpedienteModal() {
                       <div className="al-row" key={i}>
                         <span className="al-k">Grupo</span>
                         <span className="al-v">
-                          <span className="al-chip">{semLabel(g.semestre)} · Secc {g.seccion}</span>
+                          <span className="al-chip">{semLabel(g.semestre)}</span>
+                          <span className="al-chip">Sección {g.seccion}</span>
                           {(g.licenciatura || g.turno || g.salon || g.modalidad) && (
                             <span className="al-meta-badges">
-                              {g.licenciatura && <span className="mbadge mb-lic">{g.licenciatura}</span>}
+                              {g.licenciatura && <span className="mbadge mb-lic">{nombreLic(g.licenciatura)}</span>}
                               {g.turno && g.turno !== g.modalidad && (
-                                <span className="mbadge mb-turno">{g.turno}</span>
+                                <span className="mbadge mb-turno">{nombreTurno(g.turno)}</span>
                               )}
                               {g.salon && <span className="mbadge mb-salon">{g.salon}</span>}
-                              {g.modalidad && <span className="mbadge mb-mod">{g.modalidad}</span>}
+                              {g.modalidad && <span className="mbadge mb-mod">{nombreModalidad(g.modalidad)}</span>}
                             </span>
                           )}
                         </span>
@@ -246,7 +267,7 @@ export default function ExpedienteModal() {
                         <span className="al-k">Sem / Secc</span>
                         <span className="al-v">
                           <span className="al-chip">
-                            {(s.semestres || []).map(semLabel).join(', ')} · Secc {(s.secciones || []).join(', ')}
+                            {(s.semestres || []).map(semLabel).join(', ')} · Sección {(s.secciones || []).join(', ')}
                           </span>
                         </span>
                       </div>
