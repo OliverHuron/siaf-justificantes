@@ -14,6 +14,21 @@ const numSem = (c, e) => ORD_NUM[c] ?? ORD_NUM[e] ?? Number(c) ?? c;
 
 const MATRICULA_RE = /^\d{7}[A-Za-z]$/;
 
+/** Filtra un texto a la forma de la matrícula: 7 dígitos y luego 1 letra. */
+function limpiarMatricula(raw) {
+  let out = '';
+  for (const ch of String(raw).toUpperCase()) {
+    if (out.length < 7) {
+      if (/[0-9]/.test(ch)) out += ch;
+    } else if (out.length === 7) {
+      if (/[A-Z]/.test(ch)) out += ch;
+    } else {
+      break;
+    }
+  }
+  return out;
+}
+
 /** Clave del grupo elegido, para pasarlo al formulario tras verificar el código. */
 export const CLAVE_GRUPO = 'sj_alumno_grupo';
 
@@ -120,9 +135,13 @@ export default function AlumnoLogin() {
             maxLength={8} placeholder="1234567A" sufijo={dominio}
             onKeyDown={(ev) => {
               if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.key.length !== 1) return;
-              if (!/^[0-9a-zA-Z]$/.test(ev.key)) ev.preventDefault();
+              const pos = ev.target.selectionStart ?? matricula.length;
+              const esDigito = /^[0-9]$/.test(ev.key);
+              const esLetra = /^[a-zA-Z]$/.test(ev.key);
+              const permitido = pos < 7 ? esDigito : pos === 7 ? esLetra : false;
+              if (!permitido) ev.preventDefault();
             }}
-            onChange={(ev) => setMatricula(ev.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 8))} />
+            onChange={(ev) => setMatricula(limpiarMatricula(ev.target.value))} />
 
           <div className="login-grupo">
             <div className="login-grupo-f">
