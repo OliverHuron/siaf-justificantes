@@ -737,7 +737,7 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   display: flex; align-items: center; justify-content: center;
   padding: 20px; border-bottom: 1px solid var(--borde); flex-shrink: 0;
 }
-.shell-brand .logo { width: 92px; height: 92px; object-fit: contain; flex-shrink: 0; }
+.shell-brand .logo { height: 64px; width: auto; max-width: 100%; object-fit: contain; flex-shrink: 0; }
 .shell-side nav { display: flex; flex-direction: column; gap: 2px; padding: 10px; flex: 1; overflow-y: auto; }
 .shell-side nav a {
   display: flex; align-items: center; gap: 10px;
@@ -784,7 +784,7 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   .shell { grid-template-columns: 1fr; grid-template-rows: 56px auto 1fr; }
   .shell-side { grid-row: 2; grid-column: 1; flex-direction: row; flex-wrap: wrap; align-items: center; border-right: none; border-bottom: 1px solid var(--borde); }
   .shell-brand { padding: 8px 10px; border-bottom: none; }
-  .shell-brand .logo { width: 30px; height: 30px; }
+  .shell-brand .logo { height: 30px; width: auto; }
   .shell-side nav { flex-direction: row; flex-wrap: wrap; padding: 6px; }
   .shell-side .pie { display: none; }
   .shell-top { grid-column: 1; }
