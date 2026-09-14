@@ -748,7 +748,7 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 .shell-side nav a.activo { background: var(--navy); color: #fff; }
 .shell-side nav a svg { width: 18px; height: 18px; flex: 0 0 auto; }
 .shell-side .mascota {
-  display: block; margin: 0 auto; max-width: 110px; max-height: 160px;
+  display: block; margin: 0 0 18px 16px; max-width: 150px; max-height: 210px;
   width: auto; height: auto; object-fit: contain; flex-shrink: 0;
 }
 .shell-side .pie {
