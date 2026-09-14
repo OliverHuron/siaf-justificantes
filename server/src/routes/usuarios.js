@@ -26,6 +26,26 @@ router.get('/', async (req, res, next) => {
   }
 });
 
+/** DELETE /api/usuarios/:id  (borrado definitivo; si el usuario tiene historial
+ *  asociado -folios, solicitudes decididas, bitácora- se rechaza y hay que
+ *  desactivarlo en su lugar, para no perder el rastro de auditoría). */
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const r = await db.query('DELETE FROM usuarios WHERE id = $1 RETURNING usuario', [req.params.id]);
+    if (!r.rowCount) throw new ApiError(404, 'Usuario no encontrado');
+    await bitacora.registrar({
+      actorTipo: 'staff', actorRef: req.usuario.usuario, accion: 'usuario_eliminado',
+      detalle: { usuario: r.rows[0].usuario }, ip: req.ip,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.code === '23503') {
+      return next(new ApiError(409, 'No se puede eliminar: tiene historial asociado (folios, solicitudes, bitácora). Desactívalo en su lugar.'));
+    }
+    next(e);
+  }
+});
+
 /** POST /api/usuarios  { usuario, nombre, email, rol, password? } */
 router.post('/', async (req, res, next) => {
   try {
@@ -51,38 +71,46 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-/** PATCH /api/usuarios/:id  { nombre?, email?, rol?, activo?, reset_password? } */
+/** PATCH /api/usuarios/:id  { usuario?, nombre?, email?, rol?, activo?, reset_password?, nueva_password? } */
 router.patch('/:id', async (req, res, next) => {
   try {
-    const { nombre, email, rol, activo, reset_password } = req.body || {};
+    const { usuario, nombre, email, rol, activo, reset_password, nueva_password } = req.body || {};
     if (rol && !ROLES.includes(rol)) throw new ApiError(400, 'Rol inválido');
+    if (nueva_password && String(nueva_password).length < 8) {
+      throw new ApiError(400, 'La nueva contraseña debe tener al menos 8 caracteres');
+    }
 
     let passHash = null;
     let mustChange = null;
-    if (reset_password) {
+    if (nueva_password) {
+      passHash = await bcrypt.hash(nueva_password, 12);
+      mustChange = false;
+    } else if (reset_password) {
       passHash = await bcrypt.hash(config.seedPassword, 12);
       mustChange = true;
     }
 
     const r = await db.query(
       `UPDATE usuarios SET
-         nombre = COALESCE($2, nombre),
-         email = COALESCE($3, email),
-         rol = COALESCE($4, rol),
-         activo = COALESCE($5, activo),
-         password_hash = COALESCE($6, password_hash),
-         must_change_password = COALESCE($7, must_change_password),
+         usuario = COALESCE($2, usuario),
+         nombre = COALESCE($3, nombre),
+         email = COALESCE($4, email),
+         rol = COALESCE($5, rol),
+         activo = COALESCE($6, activo),
+         password_hash = COALESCE($7, password_hash),
+         must_change_password = COALESCE($8, must_change_password),
          actualizado_en = now()
        WHERE id = $1
        RETURNING id, usuario, nombre, email, rol, activo, must_change_password`,
       [
-        req.params.id, nombre ?? null, email ?? null, rol ?? null,
+        req.params.id, usuario || null, nombre ?? null, email ?? null, rol ?? null,
         typeof activo === 'boolean' ? activo : null, passHash, mustChange,
       ]
     );
     if (!r.rowCount) throw new ApiError(404, 'Usuario no encontrado');
     res.json({ ...r.rows[0], ...(reset_password ? { password_temporal: config.seedPassword } : {}) });
   } catch (e) {
+    if (e.code === '23505') return next(new ApiError(409, 'Ese usuario ya existe'));
     next(e);
   }
 });

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 
-const TABS = ['SMTP', 'Plantillas', 'Horarios', 'Parámetros', 'Usuarios'];
+const TABS = ['SMTP', 'Plantillas', 'Horarios', 'Parámetros'];
 
 export default function Configuracion() {
   const [tab, setTab] = useState('SMTP');
@@ -16,7 +16,6 @@ export default function Configuracion() {
       {tab === 'Plantillas' && <Plantillas />}
       {tab === 'Horarios' && <Horarios />}
       {tab === 'Parámetros' && <Parametros />}
-      {tab === 'Usuarios' && <Usuarios />}
     </div>
   );
 }
@@ -227,63 +226,6 @@ function ParametroItem({ clave, valor, onGuardar }) {
       <strong className="mono">{clave}</strong>
       <textarea value={txt} onChange={(e) => setTxt(e.target.value)} style={{ minHeight: 120, fontFamily: 'ui-monospace, monospace' }} />
       <button className="sec mini" style={{ marginTop: 8 }} onClick={() => onGuardar(clave, txt)}>Guardar</button>
-    </div>
-  );
-}
-
-function Usuarios() {
-  const [lista, setLista] = useState([]);
-  const [err, setErr] = useState('');
-  const [ok, setOk] = useState('');
-  const [n, setN] = useState({ usuario: '', nombre: '', email: '', rol: 'coordinador' });
-  function cargar() { api('/usuarios').then(setLista).catch((e) => setErr(e.message)); }
-  useEffect(cargar, []);
-
-  async function crear() {
-    try { const r = await api('/usuarios', { body: n }); setOk(`Creado ${r.usuario}`); setN({ usuario: '', nombre: '', email: '', rol: 'coordinador' }); cargar(); }
-    catch (e) { setErr(e.message); }
-  }
-  async function toggle(u) {
-    try { await api(`/usuarios/${u.id}`, { method: 'PATCH', body: { activo: !u.activo } }); cargar(); } catch (e) { setErr(e.message); }
-  }
-  async function reset(u) {
-    if (!confirm(`¿Restablecer la contraseña de ${u.usuario}?`)) return;
-    try { const r = await api(`/usuarios/${u.id}`, { method: 'PATCH', body: { reset_password: true } }); setOk(`Contraseña temporal: ${r.password_temporal}`); } catch (e) { setErr(e.message); }
-  }
-
-  return (
-    <div>
-      <Aviso err={err} ok={ok} />
-      <div className="card tabla-scroll">
-        <table>
-          <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Activo</th><th></th></tr></thead>
-          <tbody>
-            {lista.map((u) => (
-              <tr key={u.id}>
-                <td className="mono">{u.usuario}</td><td>{u.nombre}</td><td>{u.rol}</td>
-                <td>{u.activo ? 'sí' : 'no'}</td>
-                <td className="fila">
-                  <button className="plano mini" onClick={() => toggle(u)}>{u.activo ? 'Desactivar' : 'Activar'}</button>
-                  <button className="plano mini" onClick={() => reset(u)}>Reset contraseña</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="card">
-        <h3>Nuevo usuario</h3>
-        <div className="fila">
-          <input placeholder="usuario" value={n.usuario} onChange={(e) => setN({ ...n, usuario: e.target.value })} />
-          <input placeholder="nombre" value={n.nombre} onChange={(e) => setN({ ...n, nombre: e.target.value })} />
-          <input placeholder="email" value={n.email} onChange={(e) => setN({ ...n, email: e.target.value })} />
-          <select value={n.rol} onChange={(e) => setN({ ...n, rol: e.target.value })}>
-            {['encargada', 'supervisor', 'coordinador', 'enfermeria'].map((r) => <option key={r}>{r}</option>)}
-          </select>
-          <button className="mini" onClick={crear}>Crear</button>
-        </div>
-        <p className="hint">Contraseña temporal por defecto: 123456 (se pide cambiarla al ingresar).</p>
-      </div>
     </div>
   );
 }

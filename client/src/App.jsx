@@ -9,11 +9,11 @@ import AvisoPrivacidad from './pages/AvisoPrivacidad.jsx';
 import StaffLogin from './pages/staff/Login.jsx';
 import StaffLayout from './pages/staff/Layout.jsx';
 import Bandeja from './pages/staff/Bandeja.jsx';
-import Cuenta from './pages/staff/Cuenta.jsx';
 import ExpedienteModal from './pages/staff/ExpedienteModal.jsx';
 import Folios from './pages/staff/Folios.jsx';
 import Consolidado from './pages/staff/Consolidado.jsx';
 import Configuracion from './pages/staff/Configuracion.jsx';
+import Usuarios from './pages/staff/Usuarios.jsx';
 import EnfermeriaPanel from './pages/enfermeria/Panel.jsx';
 
 /** En /solicitar/acceso: pide el código si no hay sesión; ya autenticado, muestra el formulario. */
@@ -66,13 +66,16 @@ export default function App() {
         >
           <Route index element={<Navigate to="bandeja" replace />} />
           <Route path="bandeja" element={<Bandeja />} />
-          <Route path="cuenta" element={<Cuenta />} />
           <Route path="solicitud/:id" element={<><Bandeja /><ExpedienteModal /></>} />
           <Route path="folios" element={<Folios />} />
           <Route path="consolidado" element={<Consolidado />} />
           <Route
             path="configuracion"
             element={<RequiereStaff roles={['supervisor']}><Configuracion /></RequiereStaff>}
+          />
+          <Route
+            path="usuarios"
+            element={<RequiereStaff roles={['supervisor']}><Usuarios /></RequiereStaff>}
           />
         </Route>
 
