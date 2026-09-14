@@ -66,12 +66,13 @@ export default function Usuarios() {
   function cargar() { api('/usuarios').then(setLista).catch((e) => setErr(e.message)); }
   useEffect(cargar, []);
 
+  const nuevoValido = n.usuario && n.nombre && n.email && n.password.length >= 8;
+
   async function crear() {
+    if (!nuevoValido) return;
     setErr(''); setOk('');
     try {
-      const body = { ...n };
-      if (!body.password) delete body.password;
-      const r = await api('/usuarios', { body });
+      const r = await api('/usuarios', { body: n });
       setOk(`Creado ${r.usuario}`);
       setN({ usuario: '', nombre: '', email: '', rol: 'coordinador', password: '' });
       cargar();
@@ -130,13 +131,12 @@ export default function Usuarios() {
           <select value={n.rol} onChange={(e) => setN({ ...n, rol: e.target.value })}>
             {ROLES.map((r) => <option key={r}>{r}</option>)}
           </select>
-          <input type="password" placeholder="contraseña (opcional)" value={n.password}
+          <input type="password" placeholder="contraseña (mín. 8)" required value={n.password}
             onChange={(e) => setN({ ...n, password: e.target.value })} />
         </div>
         <div className="fila" style={{ marginTop: 12 }}>
-          <button className="mini" onClick={crear}>Crear</button>
+          <button className="mini" disabled={!nuevoValido} onClick={crear}>Crear</button>
         </div>
-        <p className="hint">Si dejas la contraseña en blanco, se asigna la temporal por defecto (123456).</p>
       </div>
       <div className="card tabla-scroll">
         <table>

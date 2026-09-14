@@ -46,17 +46,17 @@ router.delete('/:id', async (req, res, next) => {
   }
 });
 
-/** POST /api/usuarios  { usuario, nombre, email, rol, password? } */
+/** POST /api/usuarios  { usuario, nombre, email, rol, password } */
 router.post('/', async (req, res, next) => {
   try {
-    const { usuario, nombre, email, rol } = req.body || {};
-    if (!usuario || !nombre || !email || !rol) throw new ApiError(400, 'Faltan campos');
+    const { usuario, nombre, email, rol, password } = req.body || {};
+    if (!usuario || !nombre || !email || !rol || !password) throw new ApiError(400, 'Faltan campos');
     if (!ROLES.includes(rol)) throw new ApiError(400, 'Rol inválido');
-    const password = (req.body && req.body.password) || config.seedPassword;
+    if (String(password).length < 8) throw new ApiError(400, 'La contraseña debe tener al menos 8 caracteres');
     const hash = await bcrypt.hash(password, 12);
     const r = await db.query(
       `INSERT INTO usuarios (usuario, nombre, email, password_hash, rol, must_change_password)
-       VALUES ($1,$2,$3,$4,$5,true)
+       VALUES ($1,$2,$3,$4,$5,false)
        RETURNING id, usuario, nombre, email, rol, activo, must_change_password`,
       [usuario, nombre, email, hash, rol]
     );
