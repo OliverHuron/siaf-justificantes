@@ -557,6 +557,17 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   display: flex; flex-direction: column; align-items: center;
 }
 
+/* resumen compacto de "días a justificar" (bandeja) + mini-calendario en popover */
+.dias-resumen { display: inline-flex; align-items: center; gap: 6px; }
+.dias-pop {
+  position: fixed; z-index: 60;
+  background: #fff; border: 1px solid var(--borde); border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .18); padding: 10px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.dias-mes .rc-head { justify-content: center; gap: 6px; font-size: .84rem; }
+.rc-day.marcado { background: var(--navy); color: #fff; border-radius: 7px; }
+
 /* badges sobrios (misma paleta) para licenciatura / turno / salón / modalidad */
 .al-meta-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
 .mbadge {
