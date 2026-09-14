@@ -747,8 +747,12 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 .shell-side nav a:hover { background: var(--gris-suave); }
 .shell-side nav a.activo { background: var(--navy); color: #fff; }
 .shell-side nav a svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.shell-side .mascota {
+  display: block; margin: 0 auto; max-width: 110px; max-height: 160px;
+  width: auto; height: auto; object-fit: contain; flex-shrink: 0;
+}
 .shell-side .pie {
-  margin-top: auto; padding: 12px 16px; color: var(--navy); font-weight: 800;
+  padding: 12px 16px; color: var(--navy); font-weight: 800;
   font-size: .74rem; letter-spacing: .02em; border-top: 1px solid var(--borde); flex-shrink: 0;
 }
 

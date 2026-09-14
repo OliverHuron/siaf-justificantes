@@ -47,6 +47,7 @@ export default function StaffLayout() {
           {esSup && <NavLink to="/staff/configuracion" className={link}><Ic d={I.config} />Configuración</NavLink>}
           <NavLink to="/staff/cuenta" className={link}><Ic d={I.cuenta} />Mi cuenta</NavLink>
         </nav>
+        <img className="mascota" src="/zorro-mitad.png" alt="" aria-hidden="true" />
         <div className="pie">#HumanistaPorSiempre</div>
       </aside>
 
