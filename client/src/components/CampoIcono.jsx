@@ -21,7 +21,7 @@ const OJO_OFF = <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={
  * Campo con icono a la izquierda dentro de un contenedor con borde (patrón de
  * InvPatrimonio). Para `type="password"` agrega el toggle mostrar/ocultar.
  */
-export default function CampoIcono({ icono = 'usuario', type = 'text', ...props }) {
+export default function CampoIcono({ icono = 'usuario', type = 'text', sufijo, ...props }) {
   const [ver, setVer] = useState(false);
   const esPass = type === 'password';
   return (
@@ -32,6 +32,7 @@ export default function CampoIcono({ icono = 'usuario', type = 'text', ...props 
         </svg>
       </span>
       <input type={esPass ? (ver ? 'text' : 'password') : type} {...props} />
+      {sufijo && <span className="login2-inp-suffix">{sufijo}</span>}
       {esPass && (
         <button type="button" className="login2-inp-eye" tabIndex={-1}
           onClick={() => setVer((v) => !v)}

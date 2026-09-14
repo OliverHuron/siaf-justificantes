@@ -12,6 +12,8 @@ const ORD_NUM = {
 };
 const numSem = (c, e) => ORD_NUM[c] ?? ORD_NUM[e] ?? Number(c) ?? c;
 
+const MATRICULA_RE = /^\d{7}[A-Za-z]$/;
+
 /** Clave del grupo elegido, para pasarlo al formulario tras verificar el código. */
 export const CLAVE_GRUPO = 'sj_alumno_grupo';
 
@@ -26,7 +28,7 @@ function periodoEnCursoEsNon(d = new Date()) {
 export default function AlumnoLogin() {
   const { setAlumnoToken } = useAuth();
   const [paso, setPaso] = useState('correo');
-  const [email, setEmail] = useState('');
+  const [matricula, setMatricula] = useState('');
   const [code, setCode] = useState('');
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -68,8 +70,13 @@ export default function AlumnoLogin() {
     : 'Periodo en curso: semestres pares (2°, 4°, 6°, 8°).';
   const secOpciones = (cat?.secciones || []).filter((s) => s.clave !== 'otro');
 
+  const dominio = cat?.dominio_alumno || '@umich.mx';
+  const matriculaValida = MATRICULA_RE.test(matricula);
+  const email = matriculaValida ? `${matricula.toLowerCase()}${dominio}` : '';
+
   async function pedirCodigo(e) {
     e.preventDefault();
+    if (!matriculaValida) { setErr('Tu matrícula debe ser 7 números y 1 letra (ej. 2211930X).'); return; }
     if (chk.estado !== 'ok') { setErr('Elige un semestre y sección válidos antes de continuar.'); return; }
     setErr(''); setMsg(''); setCargando(true);
     try {
@@ -104,13 +111,15 @@ export default function AlumnoLogin() {
       {paso === 'correo' ? (
         <form onSubmit={pedirCodigo}>
           <h2>Solicitud de justificante</h2>
-          <p className="card-sub">Ingresa con tu correo institucional <b>@umich.mx</b></p>
+          <p className="card-sub">Ingresa con tu matrícula institucional</p>
           {err && <div className="aviso error">{err}</div>}
           {msg && <div className="aviso info">{msg}</div>}
 
-          <label>Correo institucional</label>
-          <CampoIcono icono="correo" type="email" value={email} required autoFocus
-            placeholder="matricula@umich.mx" onChange={(ev) => setEmail(ev.target.value.trim())} />
+          <label>Matrícula</label>
+          <CampoIcono icono="correo" type="text" value={matricula} required autoFocus
+            maxLength={8} placeholder="2211930X" sufijo={dominio}
+            onChange={(ev) => setMatricula(ev.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 8))} />
+          <p className="hint">7 números y 1 letra, sin el correo.</p>
 
           <div className="login-grupo">
             <div className="login-grupo-f">
@@ -142,7 +151,7 @@ export default function AlumnoLogin() {
           )}
 
           <button type="submit" className="login2-btn"
-            disabled={cargando || !email || chk.estado !== 'ok'}>
+            disabled={cargando || !matriculaValida || chk.estado !== 'ok'}>
             {cargando ? 'Enviando…' : 'Enviar código'}
           </button>
         </form>
