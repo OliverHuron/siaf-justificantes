@@ -124,9 +124,9 @@ export default function Usuarios() {
       <div className="card">
         <h3>Nuevo usuario</h3>
         <div className="fila">
-          <input placeholder="usuario" value={n.usuario} onChange={(e) => setN({ ...n, usuario: e.target.value })} />
-          <input placeholder="nombre" value={n.nombre} onChange={(e) => setN({ ...n, nombre: e.target.value })} />
-          <input placeholder="email" value={n.email} onChange={(e) => setN({ ...n, email: e.target.value })} />
+          <input type="text" placeholder="usuario" value={n.usuario} onChange={(e) => setN({ ...n, usuario: e.target.value })} />
+          <input type="text" placeholder="nombre" value={n.nombre} onChange={(e) => setN({ ...n, nombre: e.target.value })} />
+          <input type="email" placeholder="email" value={n.email} onChange={(e) => setN({ ...n, email: e.target.value })} />
           <select value={n.rol} onChange={(e) => setN({ ...n, rol: e.target.value })}>
             {ROLES.map((r) => <option key={r}>{r}</option>)}
           </select>
