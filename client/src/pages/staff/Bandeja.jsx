@@ -188,7 +188,7 @@ export default function Bandeja() {
       </div>
 
       {!filas ? <p>Cargando…</p> : (
-        <div className="card tabla-scroll">
+        <div className="card tabla-scroll tabla-siaf">
           <table>
             <thead>
               <tr>

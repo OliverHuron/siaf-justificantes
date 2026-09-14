@@ -5,7 +5,10 @@ const Ctx = createContext(null);
 
 function decodeJwt(t) {
   try {
-    return JSON.parse(atob(t.split('.')[1]));
+    const b64 = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const binario = atob(b64);
+    const bytes = Uint8Array.from(binario, (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
   } catch {
     return null;
   }

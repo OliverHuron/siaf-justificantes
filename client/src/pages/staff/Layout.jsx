@@ -38,7 +38,13 @@ export default function StaffLayout() {
   return (
     <div className="shell">
       <aside className="shell-side">
-        <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
+        <div className="shell-brand">
+          <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
+          <div className="shell-brand-text">
+            <p className="nombre">FCCA</p>
+            <p className="sub">Facultad de Contaduría<br />y Ciencias Administrativas</p>
+          </div>
+        </div>
         <nav>
           <NavLink to="/staff/bandeja" className={link}><Ic d={I.bandeja} />Bandeja</NavLink>
           <NavLink to="/staff/folios" className={link}><Ic d={I.folios} />Folios</NavLink>
@@ -51,11 +57,13 @@ export default function StaffLayout() {
       <header className="shell-top">
         <span className="titulo">{titulo}</span>
         <div className="usuario">
-          <div className="datos">
-            <div className="n">{staff.nombre || staff.usuario}</div>
-            <div className="r">{staff.rol}</div>
+          <div className="perfil">
+            <div className="datos">
+              <div className="n">{staff.nombre || staff.usuario}</div>
+              <div className="r">{staff.rol}</div>
+            </div>
+            <div className="avatar">{iniciales}</div>
           </div>
-          <div className="avatar">{iniciales}</div>
           <button onClick={() => { logoutStaff(); nav('/'); }}>Salir</button>
         </div>
       </header>
