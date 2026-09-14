@@ -735,9 +735,9 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 }
 .shell-brand {
   display: flex; align-items: center; justify-content: center;
-  padding: 16px; border-bottom: 1px solid var(--borde); flex-shrink: 0;
+  padding: 20px; border-bottom: 1px solid var(--borde); flex-shrink: 0;
 }
-.shell-brand .logo { width: 56px; height: 56px; object-fit: contain; flex-shrink: 0; }
+.shell-brand .logo { width: 92px; height: 92px; object-fit: contain; flex-shrink: 0; }
 .shell-side nav { display: flex; flex-direction: column; gap: 2px; padding: 10px; flex: 1; overflow-y: auto; }
 .shell-side nav a {
   display: flex; align-items: center; gap: 10px;
