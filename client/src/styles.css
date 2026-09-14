@@ -281,6 +281,19 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   flex: 1; display: flex; align-items: center; justify-content: center;
   padding: 24px; background: #fff; overflow-y: auto;
 }
+
+/* Emblemas a medias en los bordes del panel: solo en pantallas grandes (PC/laptop). */
+.login2-flank { display: none; }
+@media (min-width: 1024px) {
+  .login2-panel { position: relative; }
+  .login2-flank {
+    display: block; position: absolute; top: 50%; transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .login2-flank-izq { left: 0; height: 240px; width: auto; object-fit: contain; }
+  .login2-flank-der { right: 0; width: 112px; height: 240px; overflow: hidden; opacity: .8; }
+  .login2-flank-der img { display: block; height: 240px; width: auto; }
+}
 .login2-right-inner {
   width: 100%; max-width: 420px;
   display: flex; flex-direction: column; gap: 24px;
