@@ -40,10 +40,6 @@ export default function StaffLayout() {
       <aside className="shell-side">
         <div className="shell-brand">
           <img className="logo" src="/umsnh_logo.png" alt="UMSNH" />
-          <div className="shell-brand-text">
-            <p className="nombre">FCCA</p>
-            <p className="sub">Facultad de Contaduría<br />y Ciencias Administrativas</p>
-          </div>
         </div>
         <nav>
           <NavLink to="/staff/bandeja" className={link}><Ic d={I.bandeja} />Bandeja</NavLink>
