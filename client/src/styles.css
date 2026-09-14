@@ -565,6 +565,7 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   box-shadow: 0 14px 34px rgba(0, 0, 0, .18); padding: 10px;
   display: flex; flex-direction: column; gap: 10px;
 }
+.dias-mes { width: 260px; }
 .dias-mes .rc-head { justify-content: center; gap: 6px; font-size: .84rem; }
 .rc-day.marcado { background: var(--navy); color: #fff; border-radius: 7px; }
 
