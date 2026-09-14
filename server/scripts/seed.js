@@ -51,9 +51,6 @@ const HORARIO_PRUEBA = [
 ];
 
 const PLANTILLAS_CORREO = [
-  { clave: 'acuse_recibido', titulo: 'Acuse de recibido',
-    asunto: 'Recibimos tu solicitud de justificante ({{folio_o_id}})',
-    cuerpo: 'Hola {{nombre}}:\n\nRecibimos tu solicitud de justificante. Puedes dar seguimiento aquí: {{enlace_seguimiento}}\n\nSecretaría Académica, FCCA.' },
   { clave: 'aprobado', titulo: 'Solicitud aprobada',
     asunto: 'Tu justificante fue aprobado ({{folio}})',
     cuerpo: 'Hola {{nombre}}:\n\nTu solicitud fue aprobada con folio {{folio}}. Se notificó a tus profesores.\n\nSecretaría Académica, FCCA.' },

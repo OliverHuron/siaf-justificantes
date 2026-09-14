@@ -48,13 +48,13 @@ function Smtp() {
   return (
     <div className="card" style={{ maxWidth: 480 }}>
       <Aviso err={err} ok={ok} />
-      <label>Host</label><input value={v.host || ''} onChange={(e) => setV({ ...v, host: e.target.value })} />
-      <label>Puerto</label><input value={v.port || ''} onChange={(e) => setV({ ...v, port: Number(e.target.value) })} />
-      <label>Usuario</label><input value={v.user || ''} onChange={(e) => setV({ ...v, user: e.target.value })} />
+      <label>Host</label><input type="text" value={v.host || ''} onChange={(e) => setV({ ...v, host: e.target.value })} />
+      <label>Puerto</label><input type="number" value={v.port || ''} onChange={(e) => setV({ ...v, port: Number(e.target.value) })} />
+      <label>Usuario</label><input type="text" value={v.user || ''} onChange={(e) => setV({ ...v, user: e.target.value })} />
       <label>Contraseña (App Password){v.pass_configurada ? ' (ya configurada)' : ''}</label>
       <input type="password" value={v.pass || ''} placeholder={v.pass_configurada ? '••••••••' : ''}
         onChange={(e) => setV({ ...v, pass: e.target.value })} />
-      <label>Remitente</label><input value={v.from || ''} onChange={(e) => setV({ ...v, from: e.target.value })} />
+      <label>Remitente</label><input type="text" value={v.from || ''} onChange={(e) => setV({ ...v, from: e.target.value })} />
       <div className="fila" style={{ marginTop: 12 }}>
         <button onClick={guardar}>Guardar</button>
         <button className="sec" onClick={probar}>Probar conexión</button>
@@ -63,61 +63,115 @@ function Smtp() {
   );
 }
 
+function PlantillaCard({ p, onGuardar, onEliminar }) {
+  const [f, setF] = useState({ titulo: p.titulo, asunto: p.asunto || '', cuerpo: p.cuerpo, activo: p.activo });
+  const [abierta, setAbierta] = useState(false);
+  const sucio = f.titulo !== p.titulo || f.asunto !== (p.asunto || '') || f.cuerpo !== p.cuerpo || f.activo !== p.activo;
+
+  return (
+    <div className="tpl-card">
+      <div className="tpl-card-head">
+        <span className={`pill ${p.ambito === 'correo' ? 'azul' : 'neutro'}`}>{p.ambito}</span>
+        <span className={`pill ${f.activo ? 'ok' : 'neutro'}`}>{f.activo ? 'Activa' : 'Inactiva'}</span>
+      </div>
+      <div className="mono hint" style={{ margin: '6px 0 2px' }}>{p.clave}</div>
+      {!abierta ? (
+        <>
+          <div className="tpl-card-titulo">{f.titulo}</div>
+          {p.ambito === 'correo' && f.asunto && <div className="tpl-card-preview">{f.asunto}</div>}
+          <div className="tpl-card-preview">{f.cuerpo}</div>
+          <div className="fila" style={{ marginTop: 10 }}>
+            <button className="plano mini" onClick={() => setAbierta(true)}>Editar</button>
+            <button className="plano mini" onClick={() => onGuardar(p.id, { ...f, activo: !f.activo })}>
+              {f.activo ? 'Desactivar' : 'Activar'}
+            </button>
+            <button className="plano mini" style={{ borderColor: 'var(--mal)', color: 'var(--mal)' }}
+              onClick={() => onEliminar(p)}>Eliminar</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <label>Título</label>
+          <input type="text" value={f.titulo} onChange={(e) => setF({ ...f, titulo: e.target.value })} />
+          {p.ambito === 'correo' && <>
+            <label>Asunto</label>
+            <input type="text" value={f.asunto} onChange={(e) => setF({ ...f, asunto: e.target.value })} />
+          </>}
+          <label>Cuerpo</label>
+          <textarea value={f.cuerpo} onChange={(e) => setF({ ...f, cuerpo: e.target.value })} style={{ minHeight: 140 }} />
+          <div className="fila" style={{ marginTop: 10 }}>
+            <button className="mini" disabled={!sucio} onClick={() => onGuardar(p.id, f)}>Guardar</button>
+            <button className="plano mini" onClick={() => setAbierta(false)}>Cerrar</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function Plantillas() {
   const [lista, setLista] = useState([]);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
+  const [mostrarForm, setMostrarForm] = useState(false);
   const [nueva, setNueva] = useState({ ambito: 'correo', clave: '', titulo: '', asunto: '', cuerpo: '' });
   function cargar() { api('/plantillas').then(setLista).catch((e) => setErr(e.message)); }
   useEffect(cargar, []);
 
-  async function guardar(p) {
+  async function guardar(id, f) {
+    setErr(''); setOk('');
     try {
-      await api(`/plantillas/${p.id}`, { method: 'PATCH', body: { titulo: p.titulo, asunto: p.asunto, cuerpo: p.cuerpo, activo: p.activo } });
+      await api(`/plantillas/${id}`, { method: 'PATCH', body: f });
       setOk('Plantilla guardada'); cargar();
     } catch (e) { setErr(e.message); }
   }
-  async function crear() {
-    try { await api('/plantillas', { body: nueva }); setNueva({ ambito: 'correo', clave: '', titulo: '', asunto: '', cuerpo: '' }); setOk('Creada'); cargar(); }
+  async function eliminar(p) {
+    if (!confirm(`¿Eliminar la plantilla "${p.titulo}"? Esta acción no se puede deshacer.`)) return;
+    setErr(''); setOk('');
+    try { await api(`/plantillas/${p.id}`, { method: 'DELETE' }); setOk('Plantilla eliminada'); cargar(); }
     catch (e) { setErr(e.message); }
   }
+  async function crear() {
+    setErr(''); setOk('');
+    try {
+      await api('/plantillas', { body: nueva });
+      setNueva({ ambito: 'correo', clave: '', titulo: '', asunto: '', cuerpo: '' });
+      setMostrarForm(false);
+      setOk('Creada'); cargar();
+    } catch (e) { setErr(e.message); }
+  }
+  const nuevaValida = nueva.clave.trim() && nueva.titulo.trim() && nueva.cuerpo.trim();
 
   return (
     <div>
       <Aviso err={err} ok={ok} />
-      {lista.map((p, i) => (
-        <div className="card" key={p.id}>
-          <div className="fila fila-sep">
-            <strong>{p.ambito} · <span className="mono">{p.clave}</span></strong>
-            <label style={{ fontWeight: 400, margin: 0 }}>
-              <input type="checkbox" style={{ width: 'auto' }} checked={p.activo}
-                onChange={(e) => setLista((l) => l.map((x, j) => j === i ? { ...x, activo: e.target.checked } : x))} /> activo
-            </label>
+      <div className="fila fila-sep" style={{ marginBottom: 14 }}>
+        <h3 style={{ margin: 0 }}>Plantillas</h3>
+        <button className="mini" onClick={() => setMostrarForm((v) => !v)}>
+          {mostrarForm ? 'Cancelar' : '+ Nueva plantilla'}
+        </button>
+      </div>
+      {mostrarForm && (
+        <div className="card">
+          <div className="form-grid">
+            <select value={nueva.ambito} onChange={(e) => setNueva({ ...nueva, ambito: e.target.value })}>
+              <option value="correo">correo</option>
+              <option value="cuerpo_oficio">cuerpo_oficio</option>
+            </select>
+            <input type="text" placeholder="clave" value={nueva.clave} onChange={(e) => setNueva({ ...nueva, clave: e.target.value })} />
+            <input type="text" placeholder="título" value={nueva.titulo} onChange={(e) => setNueva({ ...nueva, titulo: e.target.value })} />
           </div>
-          <label>Título</label>
-          <input value={p.titulo} onChange={(e) => setLista((l) => l.map((x, j) => j === i ? { ...x, titulo: e.target.value } : x))} />
-          {p.ambito === 'correo' && <>
-            <label>Asunto</label>
-            <input value={p.asunto || ''} onChange={(e) => setLista((l) => l.map((x, j) => j === i ? { ...x, asunto: e.target.value } : x))} />
-          </>}
-          <label>Cuerpo</label>
-          <textarea value={p.cuerpo} onChange={(e) => setLista((l) => l.map((x, j) => j === i ? { ...x, cuerpo: e.target.value } : x))} />
-          <button className="sec mini" style={{ marginTop: 8 }} onClick={() => guardar(lista[i])}>Guardar</button>
+          {nueva.ambito === 'correo' && (
+            <input type="text" placeholder="asunto" value={nueva.asunto}
+              onChange={(e) => setNueva({ ...nueva, asunto: e.target.value })} style={{ marginTop: 10 }} />
+          )}
+          <textarea placeholder="cuerpo" value={nueva.cuerpo} onChange={(e) => setNueva({ ...nueva, cuerpo: e.target.value })} style={{ marginTop: 10 }} />
+          <button className="mini" style={{ marginTop: 10 }} disabled={!nuevaValida} onClick={crear}>Crear</button>
         </div>
-      ))}
-      <div className="card">
-        <h3>Nueva plantilla</h3>
-        <div className="fila">
-          <select value={nueva.ambito} onChange={(e) => setNueva({ ...nueva, ambito: e.target.value })} style={{ width: 'auto' }}>
-            <option value="correo">correo</option>
-            <option value="cuerpo_oficio">cuerpo_oficio</option>
-          </select>
-          <input placeholder="clave" value={nueva.clave} onChange={(e) => setNueva({ ...nueva, clave: e.target.value })} />
-          <input placeholder="título" value={nueva.titulo} onChange={(e) => setNueva({ ...nueva, titulo: e.target.value })} />
-        </div>
-        {nueva.ambito === 'correo' && <input placeholder="asunto" value={nueva.asunto} onChange={(e) => setNueva({ ...nueva, asunto: e.target.value })} style={{ marginTop: 8 }} />}
-        <textarea placeholder="cuerpo" value={nueva.cuerpo} onChange={(e) => setNueva({ ...nueva, cuerpo: e.target.value })} style={{ marginTop: 8 }} />
-        <button className="mini" style={{ marginTop: 8 }} onClick={crear}>Crear</button>
+      )}
+      <div className="tpl-grid">
+        {lista.map((p) => <PlantillaCard key={p.id} p={p} onGuardar={guardar} onEliminar={eliminar} />)}
+        {lista.length === 0 && <p className="hint">Sin plantillas.</p>}
       </div>
     </div>
   );
@@ -160,7 +214,7 @@ function Horarios() {
         <h3>Agregar horario</h3>
         <div className="fila">
           {['ciclo_escolar', 'semestre', 'seccion', 'materia', 'profesor_nombre', 'profesor_correo'].map((k) => (
-            <input key={k} placeholder={k} value={n[k]} onChange={(e) => setN({ ...n, [k]: e.target.value })} />
+            <input key={k} type="text" placeholder={k} value={n[k]} onChange={(e) => setN({ ...n, [k]: e.target.value })} />
           ))}
           <select value={n.dia_semana} onChange={(e) => setN({ ...n, dia_semana: e.target.value })}>
             {['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'].map((d, i) => (
