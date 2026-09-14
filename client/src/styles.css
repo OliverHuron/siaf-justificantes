@@ -591,7 +591,10 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   display: flex; align-items: center; gap: 12px;
 }
 .just-topbar img { height: 30px; width: auto; display: block; }
-.just-topbar .tb-title { font-weight: 800; color: var(--navy); font-size: .98rem; }
+.just-topbar .tb-title {
+  font-family: 'Arial MT', Arial, Helvetica, sans-serif;
+  font-weight: 700; color: var(--navy); font-size: 1.05rem;
+}
 .just-topbar .tb-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .just-topbar .tb-mail { color: var(--gris); font-size: .82rem; }
 @media (max-width: 560px) { .just-topbar .tb-mail { display: none; } .just-topbar .tb-title { font-size: .9rem; } }
