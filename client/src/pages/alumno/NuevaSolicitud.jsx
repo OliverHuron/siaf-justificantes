@@ -179,6 +179,11 @@ export default function NuevaSolicitud() {
 
   return (
     <>
+      <img className="flanco flanco-izq" src="/zorro-mitad.png" alt="" aria-hidden="true" />
+      <span className="flanco flanco-der" aria-hidden="true">
+        <img src="/UMSNHLogo1.png" alt="" />
+      </span>
+
       <header className="just-topbar">
         <div className="just-topbar-in">
           <img src="/fcca_vec.png" alt="FCCA" />

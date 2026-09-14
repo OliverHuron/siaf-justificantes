@@ -76,11 +76,6 @@ export default function LoginShell({ children }) {
       </aside>
 
       <section className="login2-panel">
-        <img className="login2-flank login2-flank-izq" src="/zorro-mitad.png" alt="" aria-hidden="true" />
-        <span className="login2-flank login2-flank-der" aria-hidden="true">
-          <img src="/UMSNHLogo1.png" alt="" />
-        </span>
-
         <div className="login2-right-inner">
           <div className="login2-zorro" ref={zorro} aria-hidden="true">
             <img src="/zorro.png" alt="" />
