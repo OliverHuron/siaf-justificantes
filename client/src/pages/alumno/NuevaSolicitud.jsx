@@ -166,14 +166,26 @@ export default function NuevaSolicitud() {
 
   if (hecho) {
     return (
-      <div className="wrap" style={{ maxWidth: 560 }}>
-        <h1>Solicitud enviada</h1>
-        <div className="aviso exito">
-          Tu solicitud quedó registrada. Recibirás un acuse en tu correo institucional y,
-          si la Secretaría necesita algo más, te contactará por ese medio.
+      <>
+        <img className="flanco flanco-izq" src="/zorro-mitad.png" alt="" aria-hidden="true" />
+        <span className="flanco flanco-der" aria-hidden="true">
+          <img src="/UMSNHLogo1.png" alt="" />
+        </span>
+        <div className="wrap" style={{ maxWidth: 560, textAlign: 'center' }}>
+          <div className="check-ok" aria-hidden="true">
+            <svg viewBox="0 0 52 52">
+              <circle className="check-ok-circulo" cx="26" cy="26" r="25" />
+              <path className="check-ok-palomita" fill="none" d="M14 27l7 7 16-16" />
+            </svg>
+          </div>
+          <h1>Solicitud enviada</h1>
+          <div className="aviso exito">
+            Tu solicitud quedó registrada. Recibirás un acuse en tu correo institucional y,
+            si la Secretaría necesita algo más, te contactará por ese medio.
+          </div>
+          <Link className="btn sec" to="/" onClick={() => setAlumnoToken(null)}>Volver al inicio</Link>
         </div>
-        <Link className="btn sec" to="/" onClick={() => setAlumnoToken(null)}>Volver al inicio</Link>
-      </div>
+      </>
     );
   }
 

@@ -669,6 +669,29 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   .flanco-der img { display: block; height: 380px; width: auto; }
 }
 
+/* Check animado de la pantalla "Solicitud enviada" */
+.check-ok { width: 84px; height: 84px; margin: 32px auto 18px; }
+.check-ok svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.check-ok-circulo {
+  fill: var(--ok);
+  transform-origin: 26px 26px;
+  animation: check-rebote .45s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.check-ok-palomita {
+  stroke: #fff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 34;
+  stroke-dashoffset: 34;
+  animation: check-trazo .3s .35s ease-out forwards;
+}
+@keyframes check-rebote { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes check-trazo { to { stroke-dashoffset: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .check-ok-circulo, .check-ok-palomita { animation: none; stroke-dashoffset: 0; }
+}
+
 .just-wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 80px; }
 .just-grid { display: grid; grid-template-columns: minmax(0, 1fr) 336px; gap: 24px; align-items: start; }
 @media (max-width: 900px) { .just-grid { grid-template-columns: 1fr; } }
