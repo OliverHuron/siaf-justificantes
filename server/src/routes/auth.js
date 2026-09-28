@@ -6,6 +6,7 @@ const db = require('../db');
 const { ApiError } = require('../middleware/error');
 const { firmarStaff, firmarAlumno, requireStaff } = require('../middleware/auth');
 const otp = require('../lib/otp');
+const eventos = require('../lib/eventos');
 
 const router = express.Router();
 
@@ -84,6 +85,7 @@ router.post('/cambiar-password', requireStaff, async (req, res, next) => {
 router.post('/logout', requireStaff, async (req, res, next) => {
   try {
     await db.query(`UPDATE usuarios SET ultima_actividad = now() - interval '1 hour' WHERE id = $1`, [req.usuario.sub]);
+    eventos.emitir('sesion');
     res.json({ ok: true });
   } catch (e) {
     next(e);

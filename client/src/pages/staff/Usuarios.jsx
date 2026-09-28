@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { api } from '../../api.js';
+import { useEffect, useRef, useState } from 'react';
+import { api, urlEventosStaff } from '../../api.js';
 
 const ROLES = ['encargada', 'supervisor', 'coordinador', 'enfermeria'];
 
@@ -140,12 +140,21 @@ export default function Usuarios() {
   const [n, setN] = useState({ usuario: '', nombre: '', email: '', rol: 'coordinador', password: '' });
 
   function cargar() { api('/usuarios').then(setLista).catch((e) => setErr(e.message)); }
+  const cargarRef = useRef(cargar);
+  cargarRef.current = cargar;
   useEffect(() => {
     cargar();
-    // Refresca solo el estado conectado/no conectado cada rato, para no
-    // depender de que alguien recargue la página a mano.
+    // Respaldo por si el SSE se cae: refresca el estado conectado/no
+    // conectado cada rato de todos modos.
     const t = setInterval(cargar, 20000);
     return () => clearInterval(t);
+  }, []);
+  useEffect(() => {
+    const url = urlEventosStaff();
+    if (!url) return undefined;
+    const es = new EventSource(url);
+    es.onmessage = () => cargarRef.current();
+    return () => es.close();
   }, []);
 
   const nuevoValido = n.usuario && n.nombre && n.email && n.password.length >= 8;
