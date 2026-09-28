@@ -76,6 +76,20 @@ router.post('/cambiar-password', requireStaff, async (req, res, next) => {
   }
 });
 
+/**
+ * POST /api/auth/logout — marca la sesión de personal como cerrada de
+ * inmediato (en vez de esperar a que pasen los 5 min de inactividad para que
+ * se vea "no conectada" en Usuarios).
+ */
+router.post('/logout', requireStaff, async (req, res, next) => {
+  try {
+    await db.query(`UPDATE usuarios SET ultima_actividad = now() - interval '1 hour' WHERE id = $1`, [req.usuario.sub]);
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
 // --- OTP de alumno (PLAN §2.1) ---
 
 /** POST /api/auth/alumno/solicitar-codigo  { email } */

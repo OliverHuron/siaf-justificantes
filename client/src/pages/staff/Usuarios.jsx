@@ -62,7 +62,7 @@ function SesionDialog({ u, onClose }) {
               <span className="al-v">{hace(s.ultima_actividad)}</span>
             </div>
             <div className="al-row">
-              <span className="al-k">Horas conectada (total)</span>
+              <span className="al-k">Horas conectada hoy</span>
               <span className="al-v"><b>{s.horas_conectado}</b> h</span>
             </div>
           </div>
@@ -92,7 +92,7 @@ function FilaUsuario({ u, onGuardar, onEliminar, onCambiarPassword, onResetTempo
         </td>
         <td><span className={`pill ${u.activo ? 'ok' : 'neutro'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span></td>
         <td>
-          <span className="fila" style={{ alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+          <span className="fila" style={{ alignItems: 'center', gap: 0, flexWrap: 'nowrap' }}>
             <span className={`dot-sesion ${u.conectado ? 'on' : 'off'}`} title={u.conectado ? 'Conectada' : 'No conectada'} />
             <button type="button" className="icono-btn" title="Ver sesión" onClick={() => setMostrarSesion(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -140,7 +140,13 @@ export default function Usuarios() {
   const [n, setN] = useState({ usuario: '', nombre: '', email: '', rol: 'coordinador', password: '' });
 
   function cargar() { api('/usuarios').then(setLista).catch((e) => setErr(e.message)); }
-  useEffect(cargar, []);
+  useEffect(() => {
+    cargar();
+    // Refresca solo el estado conectado/no conectado cada rato, para no
+    // depender de que alguien recargue la página a mano.
+    const t = setInterval(cargar, 20000);
+    return () => clearInterval(t);
+  }, []);
 
   const nuevoValido = n.usuario && n.nombre && n.email && n.password.length >= 8;
 

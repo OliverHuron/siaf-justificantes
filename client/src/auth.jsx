@@ -32,6 +32,11 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logoutStaff = useCallback(() => {
+    // Avisa al servidor para que la sesión se vea "no conectada" de inmediato
+    // en Usuarios, en vez de esperar los 5 min de inactividad. Se manda antes
+    // de borrar el token (si no, ya no habría con qué autenticar la llamada)
+    // y no se espera la respuesta: cerrar sesión no debe sentirse lento.
+    api('/auth/logout', { method: 'POST', tipo: 'staff' }).catch(() => {});
     setToken('staff', null);
     setStaff(null);
   }, []);

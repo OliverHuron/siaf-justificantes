@@ -139,7 +139,7 @@ tr.clic:hover { background: #f8f9fb; }
 td.nowrap, th.nowrap { white-space: nowrap; }
 
 /* punto de estado de sesión (Usuarios): verde = conectada, gris = no conectada */
-.dot-sesion { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.dot-sesion { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; margin-right: 9px; }
 .dot-sesion.on { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); }
 .dot-sesion.off { background: #cbd5e1; }
 
