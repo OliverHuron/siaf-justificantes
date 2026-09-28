@@ -218,11 +218,28 @@ function Plantillas() {
   );
 }
 
+const PLANTILLA_PROFESORES_CSV =
+  'ProfAsigNombre,ProfAsigApePate,ProfAsigApeMate,Correo,Materia,Sem,Secc\n' +
+  'JUAN,PEREZ,LOPEZ,juan.perez@ejemplo.com,CONTABILIDAD I,1,45\n';
+
+function descargarPlantillaProfesores() {
+  const blob = new Blob([PLANTILLA_PROFESORES_CSV], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'plantilla_profesores.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 function Profesores() {
   const [lista, setLista] = useState([]);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
   const [n, setN] = useState({ sem: '', secc: '', materia: '', nombre: '', correo: '' });
+  const [archivoNombre, setArchivoNombre] = useState('');
   function cargar() { api('/profesores').then(setLista).catch((e) => setErr(e.message)); }
   useEffect(cargar, []);
 
@@ -234,9 +251,14 @@ function Profesores() {
     if (!confirm('¿Eliminar a este profesor de esta materia/sección? Ya no se le notificará en folios futuros.')) return;
     try { await api(`/profesores/${id}`, { method: 'DELETE' }); cargar(); } catch (e) { setErr(e.message); }
   }
+  async function guardarEdicion(id, cambios) {
+    try { await api(`/profesores/${id}`, { method: 'PATCH', body: cambios }); cargar(); }
+    catch (e) { setErr(e.message); }
+  }
   async function importar(e) {
     const file = e.target.files[0];
     if (!file) return;
+    setArchivoNombre(file.name);
     const fd = new FormData();
     fd.append('archivo', file);
     try { const r = await api('/profesores/importar', { body: fd }); setOk(`Importadas ${r.insertadas}, errores ${r.errores.length}`); cargar(); }
@@ -253,8 +275,13 @@ function Profesores() {
       </p>
       <div className="card">
         <h3>Importar CSV</h3>
-        <p className="hint">Encabezados (como el export oficial): ProfAsigNombre, ProfAsigApePate, ProfAsigApeMate, Correo, Materia, Sem, Secc</p>
-        <input type="file" accept=".csv,text/csv" onChange={importar} />
+        <div className="fila" style={{ marginBottom: 10 }}>
+          <button type="button" className="sec mini" onClick={descargarPlantillaProfesores}>Descargar plantilla</button>
+        </div>
+        <label className="archivo-drop">
+          <input type="file" accept=".csv,text/csv" onChange={importar} style={{ display: 'none' }} />
+          <span>{archivoNombre || 'Seleccionar archivo CSV…'}</span>
+        </label>
       </div>
       <div className="card">
         <h3>Agregar profesor</h3>
@@ -274,17 +301,44 @@ function Profesores() {
           <thead><tr><th>Sem</th><th>Sec</th><th>Materia</th><th>Profesor</th><th>Correo</th><th></th></tr></thead>
           <tbody>
             {lista.map((h) => (
-              <tr key={h.id}>
-                <td>{h.sem}</td><td>{h.secc}</td>
-                <td>{h.materia}</td><td>{h.profesor_nombre}</td><td className="mono">{h.correo}</td>
-                <td><button className="plano mini" onClick={() => eliminar(h.id)}>Eliminar</button></td>
-              </tr>
+              <FilaProfesor key={h.id} p={h} onGuardar={guardarEdicion} onEliminar={eliminar} />
             ))}
             {lista.length === 0 && <tr><td colSpan={6} className="hint">Sin profesores dados de alta.</td></tr>}
           </tbody>
         </table>
       </div>
     </div>
+  );
+}
+
+function FilaProfesor({ p, onGuardar, onEliminar }) {
+  const [editando, setEditando] = useState(false);
+  const [f, setF] = useState({ sem: p.sem, secc: p.secc, materia: p.materia, nombre: p.profesor_nombre, correo: p.correo });
+
+  if (!editando) {
+    return (
+      <tr>
+        <td>{p.sem}</td><td>{p.secc}</td>
+        <td>{p.materia}</td><td>{p.profesor_nombre}</td><td className="mono">{p.correo}</td>
+        <td>
+          <button className="plano mini" style={{ marginRight: 6 }} onClick={() => setEditando(true)}>Editar</button>
+          <button className="plano mini" onClick={() => onEliminar(p.id)}>Eliminar</button>
+        </td>
+      </tr>
+    );
+  }
+  return (
+    <tr>
+      <td><input className="tabla-input" type="number" value={f.sem} onChange={(e) => setF({ ...f, sem: e.target.value })} /></td>
+      <td><input className="tabla-input" type="number" value={f.secc} onChange={(e) => setF({ ...f, secc: e.target.value })} /></td>
+      <td><input className="tabla-input" type="text" value={f.materia} onChange={(e) => setF({ ...f, materia: e.target.value })} /></td>
+      <td><input className="tabla-input" type="text" value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} /></td>
+      <td><input className="tabla-input mono" type="text" value={f.correo} onChange={(e) => setF({ ...f, correo: e.target.value })} /></td>
+      <td>
+        <button className="mini" style={{ marginRight: 6 }} onClick={async () => { await onGuardar(p.id, f); setEditando(false); }}>Guardar</button>
+        <button className="plano mini" onClick={() => setEditando(false)}>Cancelar</button>
+      </td>
+    </tr>
   );
 }
 

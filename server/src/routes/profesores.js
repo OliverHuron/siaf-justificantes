@@ -106,6 +106,42 @@ router.post('/', async (req, res, next) => {
   }
 });
 
+/** PATCH /api/profesores/:id  { sem?, secc?, materia?, nombre?, correo? } */
+router.patch('/:id', async (req, res, next) => {
+  try {
+    const b = req.body || {};
+    const sem = b.sem != null && b.sem !== '' ? Number(b.sem) : null;
+    const secc = b.secc != null && b.secc !== '' ? Number(b.secc) : null;
+    // El formulario maneja el nombre como un solo campo (prof_asig_nombre); si se
+    // edita, se limpian apellido paterno/materno para no arrastrar datos viejos de
+    // una importación CSV previa (que sí separa nombre/ape_pate/ape_mate) y que se
+    // dupliquen al concatenarlos.
+    const r = await db.query(
+      `UPDATE profesores_asignatura SET
+         sem = COALESCE($2, sem),
+         secc = COALESCE($3, secc),
+         materia = COALESCE($4, materia),
+         prof_asig_nombre = COALESCE($5, prof_asig_nombre),
+         prof_asig_ape_pate = CASE WHEN $5::text IS NOT NULL THEN NULL ELSE prof_asig_ape_pate END,
+         prof_asig_ape_mate = CASE WHEN $5::text IS NOT NULL THEN NULL ELSE prof_asig_ape_mate END,
+         correo = COALESCE($6, correo)
+       WHERE id = $1
+       RETURNING id`,
+      [
+        req.params.id, sem, secc,
+        b.materia ? String(b.materia).trim() : null,
+        b.nombre ? String(b.nombre).trim() : null,
+        b.correo ? String(b.correo).trim().toLowerCase() : null,
+      ]
+    );
+    if (!r.rowCount) throw new ApiError(404, 'Registro no encontrado');
+    res.json({ ok: true });
+  } catch (e) {
+    if (e.code === '23505') return next(new ApiError(409, 'Ya existe ese profesor para esa materia/sección'));
+    next(e);
+  }
+});
+
 /** DELETE /api/profesores/:id */
 router.delete('/:id', async (req, res, next) => {
   try {

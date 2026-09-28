@@ -154,6 +154,16 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   box-shadow: 0 0 0 3px var(--navy-ghost);
 }
 
+/* selector de archivo estilizado (Configuración: importar CSV) */
+.archivo-drop {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 72px; padding: 14px; border-radius: 10px;
+  border: 2px dashed var(--borde); background: #fff;
+  color: var(--texto); font-size: .92rem; cursor: pointer;
+  text-align: center; transition: border-color .15s, background .15s;
+}
+.archivo-drop:hover { border-color: var(--navy-2); background: var(--navy-ghost); }
+
 /* botones-icono (bandeja: ver receta / ticket) */
 .icono-grupo { display: flex; gap: 6px; align-items: center; }
 .icono-btn {
