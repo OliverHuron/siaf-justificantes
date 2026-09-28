@@ -172,7 +172,7 @@ export default function NuevaSolicitud() {
           Tu solicitud quedó registrada. Recibirás un acuse en tu correo institucional y,
           si la Secretaría necesita algo más, te contactará por ese medio.
         </div>
-        <Link className="btn sec" to="/">Volver al inicio</Link>
+        <Link className="btn sec" to="/" onClick={() => setAlumnoToken(null)}>Volver al inicio</Link>
       </div>
     );
   }

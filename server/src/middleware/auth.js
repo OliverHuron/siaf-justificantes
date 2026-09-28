@@ -1,9 +1,11 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const config = require('../config');
 const { ApiError } = require('./error');
 const { registrarActividad } = require('../lib/sesion');
+const db = require('../db');
 
 /**
  * Firma un token de personal. `payload` debe incluir al menos { sub, rol }.
@@ -16,11 +18,26 @@ function firmarStaff(payload) {
 
 /**
  * Firma una sesión corta de alumno. `payload` debe incluir { email }.
+ * Lleva un `jti` propio para poder invalidarla (de un solo uso) al enviar
+ * una solicitud, sin depender de listas de revocación por usuario.
  */
 function firmarAlumno(payload) {
-  return jwt.sign({ ...payload, tipo: 'alumno' }, config.jwt.secret, {
+  return jwt.sign({ ...payload, tipo: 'alumno', jti: crypto.randomUUID() }, config.jwt.secret, {
     expiresIn: config.jwt.alumnoExpire,
   });
+}
+
+/**
+ * Marca el token de alumno (por su jti) como ya usado, para que no sirva para
+ * enviar otra solicitud sin pedir un OTP nuevo. De paso barre usos viejos
+ * (más allá de la expiración del JWT) para que la tabla no crezca sin límite.
+ */
+async function invalidarAlumno({ jti, email }) {
+  await db.query(
+    `INSERT INTO alumno_tokens_usados (jti, email) VALUES ($1, $2) ON CONFLICT (jti) DO NOTHING`,
+    [jti, email]
+  );
+  db.query(`DELETE FROM alumno_tokens_usados WHERE usado_en < now() - interval '1 day'`).catch(() => {});
 }
 
 function extraerToken(req) {
@@ -58,23 +75,35 @@ function requireRol(...roles) {
   };
 }
 
-/** Exige un token válido de alumno. Deja `req.alumno`. */
-function requireAlumno(req, res, next) {
+/**
+ * Exige un token válido de alumno. Deja `req.alumno`.
+ * Además de la firma/expiración, revisa que el jti no se haya consumido ya
+ * (una solicitud enviada = token usado; hace falta un OTP nuevo para otra).
+ */
+async function requireAlumno(req, res, next) {
   const token = extraerToken(req);
   if (!token) return next(new ApiError(401, 'Falta el token de sesión'));
+  let claims;
   try {
-    const claims = jwt.verify(token, config.jwt.secret);
+    claims = jwt.verify(token, config.jwt.secret);
     if (claims.tipo !== 'alumno') throw new Error('tipo incorrecto');
-    req.alumno = claims;
-    next();
   } catch (e) {
-    next(new ApiError(401, 'Sesión inválida o expirada'));
+    return next(new ApiError(401, 'Sesión inválida o expirada'));
   }
+  try {
+    const r = await db.query(`SELECT 1 FROM alumno_tokens_usados WHERE jti = $1`, [claims.jti]);
+    if (r.rowCount) return next(new ApiError(401, 'Ya enviaste una solicitud con este código; pide uno nuevo.'));
+  } catch (e) {
+    return next(e);
+  }
+  req.alumno = claims;
+  next();
 }
 
 module.exports = {
   firmarStaff,
   firmarAlumno,
+  invalidarAlumno,
   requireStaff,
   requireRol,
   requireAlumno,

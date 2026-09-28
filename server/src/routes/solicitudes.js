@@ -4,7 +4,7 @@ const express = require('express');
 const db = require('../db');
 const config = require('../config');
 const { ApiError } = require('../middleware/error');
-const { requireAlumno } = require('../middleware/auth');
+const { requireAlumno, invalidarAlumno } = require('../middleware/auth');
 const { upload, relativaDeMulter, borrarArchivo } = require('../lib/storage');
 const banderas = require('../lib/banderas');
 const bitacora = require('../lib/bitacora');
@@ -247,6 +247,9 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
     });
 
     eventos.emitir('nueva_solicitud');
+    // El token de alumno es de un solo uso: al enviar la solicitud queda
+    // consumido, y para enviar otra hace falta pedir un OTP nuevo.
+    await invalidarAlumno(req.alumno);
     res.status(201).json({
       id: creada.id,
       token_seguimiento: creada.token_seguimiento,
