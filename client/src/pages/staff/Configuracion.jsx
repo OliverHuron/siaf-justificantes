@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 
-const TABS = ['SMTP', 'Plantillas', 'Horarios', 'Parámetros', 'Adjuntos', 'Google Sheets'];
+const TABS = ['SMTP', 'Plantillas', 'Profesores', 'Parámetros', 'Adjuntos', 'Google Sheets'];
 
 // Categorías de plantillas de correo: definen en qué dropdown del expediente
 // aparece cada una (Rechazar / Requerir presencialmente), para no revolverlas.
@@ -23,7 +23,7 @@ export default function Configuracion() {
       </div>
       {tab === 'SMTP' && <Smtp />}
       {tab === 'Plantillas' && <Plantillas />}
-      {tab === 'Horarios' && <Horarios />}
+      {tab === 'Profesores' && <Profesores />}
       {tab === 'Parámetros' && <Parametros />}
       {tab === 'Adjuntos' && <AdjuntosLimpieza />}
       {tab === 'Google Sheets' && <SheetsConfig />}
@@ -218,50 +218,52 @@ function Plantillas() {
   );
 }
 
-function Horarios() {
+function Profesores() {
   const [lista, setLista] = useState([]);
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
-  const [n, setN] = useState({ ciclo_escolar: '2026', semestre: '', seccion: '', materia: '', profesor_nombre: '', profesor_correo: '', dia_semana: '1' });
-  function cargar() { api('/horarios').then(setLista).catch((e) => setErr(e.message)); }
+  const [n, setN] = useState({ sem: '', secc: '', materia: '', nombre: '', correo: '' });
+  function cargar() { api('/profesores').then(setLista).catch((e) => setErr(e.message)); }
   useEffect(cargar, []);
 
   async function agregar() {
-    try { await api('/horarios', { body: n }); setOk('Agregado'); cargar(); }
+    try { await api('/profesores', { body: n }); setOk('Agregado'); cargar(); }
     catch (e) { setErr(e.message); }
   }
-  async function baja(id) {
-    if (!confirm('¿Dar de baja este horario?')) return;
-    try { await api(`/horarios/${id}`, { method: 'DELETE' }); cargar(); } catch (e) { setErr(e.message); }
+  async function eliminar(id) {
+    if (!confirm('¿Eliminar a este profesor de esta materia/sección? Ya no se le notificará en folios futuros.')) return;
+    try { await api(`/profesores/${id}`, { method: 'DELETE' }); cargar(); } catch (e) { setErr(e.message); }
   }
   async function importar(e) {
     const file = e.target.files[0];
     if (!file) return;
     const fd = new FormData();
     fd.append('archivo', file);
-    try { const r = await api('/horarios/importar', { body: fd }); setOk(`Importadas ${r.insertadas}, errores ${r.errores.length}`); cargar(); }
+    try { const r = await api('/profesores/importar', { body: fd }); setOk(`Importadas ${r.insertadas}, errores ${r.errores.length}`); cargar(); }
     catch (e2) { setErr(e2.message); }
   }
 
   return (
     <div>
       <Aviso err={err} ok={ok} />
+      <p className="hint">
+        Este es el padrón que de verdad usa el sistema para saber a qué profesor(es) avisar cuando
+        se emite un folio: se busca por semestre + sección del alumno. Si un profesor no aparece
+        aquí para la materia/sección que le corresponde, no le va a llegar ningún correo.
+      </p>
       <div className="card">
         <h3>Importar CSV</h3>
-        <p className="hint">Encabezados: ciclo_escolar,semestre,seccion,materia,profesor_nombre,profesor_correo,dia_semana</p>
+        <p className="hint">Encabezados (como el export oficial): ProfAsigNombre, ProfAsigApePate, ProfAsigApeMate, Correo, Materia, Sem, Secc</p>
         <input type="file" accept=".csv,text/csv" onChange={importar} />
       </div>
       <div className="card">
-        <h3>Agregar horario</h3>
+        <h3>Agregar profesor</h3>
         <div className="form-grid">
-          {['ciclo_escolar', 'semestre', 'seccion', 'materia', 'profesor_nombre', 'profesor_correo'].map((k) => (
-            <input key={k} type="text" placeholder={k} value={n[k]} onChange={(e) => setN({ ...n, [k]: e.target.value })} />
-          ))}
-          <select value={n.dia_semana} onChange={(e) => setN({ ...n, dia_semana: e.target.value })}>
-            {['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'].map((d, i) => (
-              <option key={i} value={i + 1}>{d}</option>
-            ))}
-          </select>
+          <input type="number" placeholder="Semestre (1-9)" value={n.sem} onChange={(e) => setN({ ...n, sem: e.target.value })} />
+          <input type="number" placeholder="Sección" value={n.secc} onChange={(e) => setN({ ...n, secc: e.target.value })} />
+          <input type="text" placeholder="Materia" value={n.materia} onChange={(e) => setN({ ...n, materia: e.target.value })} />
+          <input type="text" placeholder="Nombre del profesor" value={n.nombre} onChange={(e) => setN({ ...n, nombre: e.target.value })} />
+          <input type="text" placeholder="Correo del profesor" value={n.correo} onChange={(e) => setN({ ...n, correo: e.target.value })} />
         </div>
         <div className="fila" style={{ marginTop: 12 }}>
           <button className="mini" onClick={agregar}>Agregar</button>
@@ -269,16 +271,16 @@ function Horarios() {
       </div>
       <div className="card tabla-scroll">
         <table>
-          <thead><tr><th>Ciclo</th><th>Sem</th><th>Sec</th><th>Materia</th><th>Profesor</th><th>Día</th><th></th></tr></thead>
+          <thead><tr><th>Sem</th><th>Sec</th><th>Materia</th><th>Profesor</th><th>Correo</th><th></th></tr></thead>
           <tbody>
             {lista.map((h) => (
               <tr key={h.id}>
-                <td>{h.ciclo_escolar}</td><td>{h.semestre}</td><td>{h.seccion}</td>
-                <td>{h.materia}</td><td className="mono">{h.profesor_correo}</td><td>{h.dia_semana}</td>
-                <td><button className="plano mini" onClick={() => baja(h.id)}>Baja</button></td>
+                <td>{h.sem}</td><td>{h.secc}</td>
+                <td>{h.materia}</td><td>{h.profesor_nombre}</td><td className="mono">{h.correo}</td>
+                <td><button className="plano mini" onClick={() => eliminar(h.id)}>Eliminar</button></td>
               </tr>
             ))}
-            {lista.length === 0 && <tr><td colSpan={7} className="hint">Sin horarios.</td></tr>}
+            {lista.length === 0 && <tr><td colSpan={6} className="hint">Sin profesores dados de alta.</td></tr>}
           </tbody>
         </table>
       </div>
