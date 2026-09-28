@@ -31,12 +31,21 @@ function firmarAlumno(payload) {
  * Marca el token de alumno (por su jti) como ya usado, para que no sirva para
  * enviar otra solicitud sin pedir un OTP nuevo. De paso barre usos viejos
  * (más allá de la expiración del JWT) para que la tabla no crezca sin límite.
+ * Nunca lanza: la solicitud ya quedó creada (commit hecho) cuando se llama
+ * esto, así que un fallo aquí no debe convertir un envío exitoso en un error
+ * para el alumno.
  */
 async function invalidarAlumno({ jti, email }) {
-  await db.query(
-    `INSERT INTO alumno_tokens_usados (jti, email) VALUES ($1, $2) ON CONFLICT (jti) DO NOTHING`,
-    [jti, email]
-  );
+  if (!jti) return;
+  try {
+    await db.query(
+      `INSERT INTO alumno_tokens_usados (jti, email) VALUES ($1, $2) ON CONFLICT (jti) DO NOTHING`,
+      [jti, email]
+    );
+  } catch (e) {
+    console.error('[invalidarAlumno] no se pudo marcar el token como usado:', e.message);
+    return;
+  }
   db.query(`DELETE FROM alumno_tokens_usados WHERE usado_en < now() - interval '1 day'`).catch(() => {});
 }
 
@@ -87,6 +96,10 @@ async function requireAlumno(req, res, next) {
   try {
     claims = jwt.verify(token, config.jwt.secret);
     if (claims.tipo !== 'alumno') throw new Error('tipo incorrecto');
+    // Tokens emitidos antes de que existiera el jti (sesiones viejas todavía
+    // vigentes por hasta 2h tras el despliegue) no se pueden rastrear como
+    // usados/no usados: se tratan como inválidos para forzar un OTP nuevo.
+    if (!claims.jti) throw new Error('sin jti');
   } catch (e) {
     return next(new ApiError(401, 'Sesión inválida o expirada'));
   }

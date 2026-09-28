@@ -29,6 +29,10 @@ function errorHandler(err, req, res, next) {
 
   if (status >= 500) {
     console.error('[error]', err);
+    // Un error inesperado (bug, fallo de BD, etc.) no debe filtrar detalles
+    // internos al cliente — los ApiError sí traen un mensaje pensado para
+    // mostrarse tal cual.
+    if (!(err instanceof ApiError)) message = 'Error interno del servidor. Intenta de nuevo en unos minutos.';
   }
   res.status(status).json({
     error: message,
