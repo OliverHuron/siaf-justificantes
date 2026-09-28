@@ -34,6 +34,19 @@ class ApiError extends Error {
 }
 
 /**
+ * Sesión de personal caducada/inválida: limpia el token y manda al login,
+ * para que no se quede "viendo" el panel sin poder hacer nada.
+ */
+function sesionStaffExpirada() {
+  setToken('staff', null);
+  try {
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/staff/acceso')) {
+      window.location.href = '/staff/acceso';
+    }
+  } catch { /* noop */ }
+}
+
+/**
  * Llama a /api. `opts.tipo` = 'staff' | 'alumno' para adjuntar el bearer.
  * `opts.body` objeto -> JSON; si es FormData se envía tal cual.
  */
@@ -43,6 +56,7 @@ export async function api(path, opts = {}) {
   // Si no se especifica `tipo`, se adjunta el token de staff si existe, si no el
   // de alumno. Los endpoints públicos ignoran el header; los protegidos validan
   // el tipo del token, así que un token equivocado simplemente da 401.
+  const usoStaff = tipo ? tipo === 'staff' : !!getToken('staff');
   const tok = tipo ? getToken(tipo) : (getToken('staff') || getToken('alumno'));
   if (tok) h.Authorization = `Bearer ${tok}`;
 
@@ -63,10 +77,21 @@ export async function api(path, opts = {}) {
   const data = ct.includes('application/json') ? await res.json().catch(() => null) : await res.text();
 
   if (!res.ok) {
+    if (res.status === 401 && usoStaff) sesionStaffExpirada();
     const msg = (data && data.error) || `Error ${res.status}`;
     throw new ApiError(res.status, msg, data);
   }
   return data;
+}
+
+/**
+ * URL del stream SSE de "algo cambió" para el personal (nueva solicitud,
+ * aprobación, rechazo, confirmación...). El token va en la query porque
+ * EventSource no puede mandar el header Authorization.
+ */
+export function urlEventosStaff() {
+  const tok = getToken('staff');
+  return tok ? conBase(`/eventos/stream?token=${encodeURIComponent(tok)}`) : null;
 }
 
 /** Descarga binaria autenticada; devuelve un objectURL (recuerda revocarlo). */
@@ -75,7 +100,10 @@ export async function apiBlob(path, tipo) {
   const tok = tipo ? getToken(tipo) : null;
   if (tok) h.Authorization = `Bearer ${tok}`;
   const res = await fetch(conBase(path), { headers: h });
-  if (!res.ok) throw new ApiError(res.status, `Error ${res.status}`);
+  if (!res.ok) {
+    if (res.status === 401 && tipo === 'staff') sesionStaffExpirada();
+    throw new ApiError(res.status, `Error ${res.status}`);
+  }
   const blob = await res.blob();
   return URL.createObjectURL(blob);
 }

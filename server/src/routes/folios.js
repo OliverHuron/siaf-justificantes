@@ -6,6 +6,7 @@ const { ApiError } = require('../middleware/error');
 const { requireStaff, requireRol } = require('../middleware/auth');
 const bitacora = require('../lib/bitacora');
 const { TIPOS } = require('../lib/tipos');
+const sheets = require('../lib/sheets');
 
 const router = express.Router();
 router.use(requireStaff);
@@ -93,6 +94,7 @@ router.post('/:id/anular', requireRol('supervisor'), async (req, res, next) => {
       actorTipo: 'staff', actorRef: req.usuario.usuario, accion: 'folio_anulado',
       solicitudId: r.rows[0].solicitud_id, detalle: { folio: r.rows[0].folio, motivo }, ip: req.ip,
     });
+    sheets.notificar({ accion: 'anulado', folio: r.rows[0].folio, motivo });
     res.json({ ok: true, folio: r.rows[0].folio });
   } catch (e) {
     next(e);

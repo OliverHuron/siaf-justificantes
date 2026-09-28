@@ -1,14 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, apiBlob } from '../../api.js';
+import { api, apiBlob, urlEventosStaff } from '../../api.js';
+import { useAuth } from '../../auth.jsx';
 import RangoCalendario from '../../components/RangoCalendario.jsx';
+import DiasResumen from '../../components/DiasResumen.jsx';
 
 const TODOS_DIAS = [1, 2, 3, 4, 5, 6, 7];
 
 const PILL = {
-  pendiente: 'alerta', aprobada: 'ok', rechazada: 'mal',
+  pendiente: 'alerta', aprobada_pendiente_confirmacion: 'azul', aprobada: 'ok', rechazada: 'mal',
   requiere_ventanilla: 'azul', cancelada: 'neutro',
 };
+// Para el supervisor: distingue "aún no la toca la encargada" de "la encargada
+// ya la aprobó, falta mi confirmación". La encargada no ve esta columna.
+const ESTADO_TXT = { aprobada_pendiente_confirmacion: 'Aprobación' };
 
 const ORD_SEM = {
   primero: '1°', segundo: '2°', tercero: '3°', cuarto: '4°', quinto: '5°',
@@ -25,101 +30,6 @@ const fmtFechaHora = (s) => {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   });
 };
-
-const MES_CORTO = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const MES_LARGO = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-const DOW = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const fCorto = (s) => {
-  const [, m, d] = String(s).slice(0, 10).split('-');
-  return `${Number(d)} ${MES_CORTO[Number(m) - 1] || ''}`;
-};
-/** "24 ago", "3 días · 24–27 ago" (o con año si cruza de mes/año) para no saturar la fila. */
-function resumenDias(fechas) {
-  const f = fechas || [];
-  if (f.length === 0) return '—';
-  if (f.length === 1) return fCorto(f[0]);
-  return `${f.length} días · ${fCorto(f[0])} – ${fCorto(f[f.length - 1])}`;
-}
-
-/** Agrupa fechas ISO por mes para dibujar un mini-calendario por cada uno. */
-function agruparPorMes(fechas) {
-  const mapa = new Map();
-  for (const s of fechas || []) {
-    const [y, m, d] = String(s).slice(0, 10).split('-').map(Number);
-    const clave = `${y}-${m}`;
-    if (!mapa.has(clave)) mapa.set(clave, { y, m, dias: new Set() });
-    mapa.get(clave).dias.add(d);
-  }
-  return [...mapa.values()];
-}
-
-/** Mini-calendario de solo lectura: marca los días de `dias` (Set de nº de día) del mes y-m. */
-function MiniMes({ y, m, dias }) {
-  const primero = new Date(y, m - 1, 1);
-  const offset = primero.getDay();
-  const diasEnMes = new Date(y, m, 0).getDate();
-  const celdas = [];
-  for (let i = 0; i < offset; i++) celdas.push(<div key={`e${i}`} className="rc-day off" />);
-  for (let d = 1; d <= diasEnMes; d++) {
-    celdas.push(
-      <div key={d} className={`rc-day${dias.has(d) ? ' marcado' : ' no'}`}>{d}</div>
-    );
-  }
-  return (
-    <div className="dias-mes">
-      <div className="rc-head"><span>{MES_LARGO[m - 1]} {y}</span></div>
-      <div className="rc-grid">
-        {DOW.map((d) => <div key={d} className="rc-dow">{d}</div>)}
-        {celdas}
-      </div>
-    </div>
-  );
-}
-
-/** Botón-icono que despliega un mini-calendario con los días a justificar. */
-function DiasBtn({ fechas }) {
-  const [pos, setPos] = useState(null);
-  const btnRef = useRef(null);
-  function toggle(e) {
-    e.stopPropagation();
-    if (pos) { setPos(null); return; }
-    const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 6, left: Math.max(8, r.right - 260) });
-  }
-  useEffect(() => {
-    if (!pos) return undefined;
-    const close = () => setPos(null);
-    window.addEventListener('scroll', close, true);
-    window.addEventListener('resize', close);
-    document.addEventListener('mousedown', close);
-    return () => {
-      window.removeEventListener('scroll', close, true);
-      window.removeEventListener('resize', close);
-      document.removeEventListener('mousedown', close);
-    };
-  }, [pos]);
-  const meses = agruparPorMes(fechas);
-  return (
-    <>
-      <button ref={btnRef} type="button" className="nota-btn" title="Ver calendario" onClick={toggle}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <path d="M16 2v4M8 2v4M3 10h18" />
-        </svg>
-      </button>
-      {pos && (
-        <div className="dias-pop" style={{ top: pos.top, left: pos.left }}
-          onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
-          {meses.map(({ y, m, dias }) => <MiniMes key={`${y}-${m}`} y={y} m={m} dias={dias} />)}
-        </div>
-      )}
-    </>
-  );
-}
 
 const ICONO = {
   receta: (
@@ -239,6 +149,12 @@ function BotonAdjunto({ solicitudId, adjId, clase, titulo }) {
 
 export default function Bandeja() {
   const nav = useNavigate();
+  const { staff } = useAuth();
+  // El estado ("pendiente" / "por confirmar" / etc.) es información de control
+  // entre encargada y supervisor: la encargada no la ve, solo actúa y la
+  // solicitud desaparece de su cola; el supervisor sí necesita distinguir las
+  // dos etapas.
+  const verEstado = staff.rol !== 'encargada';
   const [filas, setFilas] = useState(null);
   const [err, setErr] = useState('');
   const [filtro, setFiltro] = useState({
@@ -247,7 +163,12 @@ export default function Bandeja() {
 
   function cargar() {
     const q = new URLSearchParams();
-    if (filtro.estado) q.set('estado', filtro.estado);
+    // Para el supervisor, "Pendientes" incluye también las que la encargada
+    // ya aprobó y esperan su confirmación: para él tampoco están resueltas.
+    const estadoEfectivo = filtro.estado === 'pendiente' && staff.rol === 'supervisor'
+      ? 'pendiente,aprobada_pendiente_confirmacion'
+      : filtro.estado;
+    if (estadoEfectivo) q.set('estado', estadoEfectivo);
     if (filtro.texto) q.set('texto', filtro.texto);
     if (filtro.notas) q.set('notas', filtro.notas);
     if (filtro.rango.inicio) q.set('desde', filtro.rango.inicio);
@@ -255,6 +176,19 @@ export default function Bandeja() {
     api(`/revision/cola?${q}`).then(setFilas).catch((e) => setErr(e.message));
   }
   useEffect(cargar, [filtro.estado, filtro.notas, filtro.rango.inicio, filtro.rango.fin]);
+
+  // Refresco en vivo: cuando algo cambia (llega una solicitud, la encargada o
+  // el supervisor deciden una) el servidor avisa por SSE y se vuelve a pedir
+  // la cola, sin que haya que recargar la página a mano.
+  const cargarRef = useRef(cargar);
+  cargarRef.current = cargar;
+  useEffect(() => {
+    const url = urlEventosStaff();
+    if (!url) return undefined;
+    const es = new EventSource(url);
+    es.onmessage = () => cargarRef.current();
+    return () => es.close();
+  }, []);
 
   return (
     <div>
@@ -265,6 +199,7 @@ export default function Bandeja() {
           <select value={filtro.estado} onChange={(e) => setFiltro((f) => ({ ...f, estado: e.target.value }))} style={{ width: 'auto' }}>
             <option value="">Todas</option>
             <option value="pendiente">Pendientes</option>
+            {verEstado && <option value="aprobada_pendiente_confirmacion">Por confirmar</option>}
             <option value="aprobada">Aprobadas</option>
             <option value="rechazada">Rechazadas</option>
             <option value="requiere_ventanilla">Requieren ventanilla</option>
@@ -276,7 +211,7 @@ export default function Bandeja() {
           </select>
           <FiltroFecha value={filtro.rango} onChange={(rango) => setFiltro((f) => ({ ...f, rango }))} />
           <form onSubmit={(e) => { e.preventDefault(); cargar(); }} style={{ flex: 1, minWidth: 160 }}>
-            <input type="search" placeholder="Nombre o matrícula…" value={filtro.texto}
+            <input type="search" placeholder="Nombre, matrícula o folio…" value={filtro.texto}
               onChange={(e) => setFiltro((f) => ({ ...f, texto: e.target.value }))} />
           </form>
         </div>
@@ -295,7 +230,7 @@ export default function Bandeja() {
                 <th>Semestre</th>
                 <th>Día(s) a justificar</th>
                 <th>Comprobantes</th>
-                <th>Estado</th>
+                {verEstado && <th>Estado</th>}
                 <th>Notas</th>
               </tr>
             </thead>
@@ -313,10 +248,7 @@ export default function Bandeja() {
                     <td className="mono">{(s.secciones || []).join(', ')}</td>
                     <td className="mono">{(s.semestres || []).map(semLabel).join(', ')}</td>
                     <td className="mono nowrap">
-                      <span className="dias-resumen">
-                        {resumenDias(s.fechas)}
-                        {(s.fechas || []).length > 0 && <DiasBtn fechas={s.fechas} />}
-                      </span>
+                      <DiasResumen fechas={s.fechas} />
                     </td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="icono-grupo">
@@ -330,10 +262,12 @@ export default function Bandeja() {
                         )}
                       </div>
                     </td>
-                    <td>
-                      <span className={`pill ${PILL[s.estado] || 'neutro'}`}>{s.estado}</span>
-                      {s.folio && <div className="hint mono">{s.folio}</div>}
-                    </td>
+                    {verEstado && (
+                      <td>
+                        <span className={`pill ${PILL[s.estado] || 'neutro'}`}>{ESTADO_TXT[s.estado] || s.estado}</span>
+                        {s.folio && <div className="hint mono">{s.folio}</div>}
+                      </td>
+                    )}
                     <td>
                       {Object.keys(s.banderas || {}).map((b) => (
                         <span key={b} className="pill mal" style={{ marginRight: 4 }}>{b}</span>
@@ -344,7 +278,7 @@ export default function Bandeja() {
                   </tr>
                 );
               })}
-              {filas.length === 0 && <tr><td colSpan={10} className="hint">Sin resultados.</td></tr>}
+              {filas.length === 0 && <tr><td colSpan={verEstado ? 10 : 9} className="hint">Sin resultados.</td></tr>}
             </tbody>
           </table>
         </div>

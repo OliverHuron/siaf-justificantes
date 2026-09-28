@@ -38,7 +38,7 @@ const config = {
   },
 
   reglas: {
-    pendientesMax: parseInt(process.env.PENDIENTES_MAX || '2', 10),
+    pendientesMax: parseInt(process.env.PENDIENTES_MAX || '15', 10),
     diasLimiteSolicitud: parseInt(process.env.DIAS_LIMITE_SOLICITUD || '10', 10),
   },
 

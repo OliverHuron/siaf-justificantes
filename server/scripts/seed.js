@@ -51,22 +51,22 @@ const HORARIO_PRUEBA = [
 ];
 
 const PLANTILLAS_CORREO = [
-  { clave: 'aprobado', titulo: 'Solicitud aprobada',
+  { clave: 'aprobado', titulo: 'Solicitud aprobada', categoria: 'aprobado',
     asunto: 'Tu justificante fue aprobado ({{folio}})',
     cuerpo: 'Hola {{nombre}}:\n\nTu solicitud fue aprobada con folio {{folio}}. Se notificó a tus profesores.\n\nSecretaría Académica, FCCA.' },
-  { clave: 'rechazo_receta_ilegible', titulo: 'Rechazo: receta ilegible',
+  { clave: 'rechazo_receta_ilegible', titulo: 'Rechazo: receta ilegible', categoria: 'rechazo',
     asunto: 'Tu solicitud de justificante requiere corrección',
     cuerpo: 'Hola {{nombre}}:\n\nNo fue posible aprobar tu solicitud porque la receta es ilegible. Vuelve a enviarla con una imagen clara.\n\n{{motivo_rechazo}}' },
-  { clave: 'rechazo_falta_ticket', titulo: 'Rechazo: falta ticket',
+  { clave: 'rechazo_falta_ticket', titulo: 'Rechazo: falta ticket', categoria: 'rechazo',
     asunto: 'Tu solicitud de justificante requiere corrección',
     cuerpo: 'Hola {{nombre}}:\n\nFalta el ticket de compra de los medicamentos. Adjúntalo y vuelve a enviar la solicitud.' },
-  { clave: 'rechazo_fechas', titulo: 'Rechazo: fechas no coinciden',
+  { clave: 'rechazo_fechas', titulo: 'Rechazo: fechas no coinciden', categoria: 'rechazo',
     asunto: 'Tu solicitud de justificante requiere corrección',
     cuerpo: 'Hola {{nombre}}:\n\nLas fechas señaladas no coinciden con las de la receta.\n\n{{motivo_rechazo}}' },
-  { clave: 'pasar_ventanilla', titulo: 'Pasar a ventanilla',
+  { clave: 'pasar_ventanilla', titulo: 'Pasar a ventanilla', categoria: 'ventanilla',
     asunto: 'Tu solicitud requiere asistencia en ventanilla',
     cuerpo: 'Hola {{nombre}}:\n\nPara continuar, presenta el documento original en ventanilla de la Secretaría Académica.\n\n{{nota}}' },
-  { clave: 'solicitud_informacion', titulo: 'Solicitud de información',
+  { clave: 'solicitud_informacion', titulo: 'Solicitud de información', categoria: 'informacion',
     asunto: 'Necesitamos más información sobre tu solicitud',
     cuerpo: 'Hola {{nombre}}:\n\nPara poder continuar necesitamos que aclares lo siguiente:\n\n{{nota}}' },
 ];
@@ -162,10 +162,10 @@ async function upsertHorarioPrueba() {
 async function upsertPlantillas() {
   for (const p of PLANTILLAS_CORREO) {
     await pool.query(
-      `INSERT INTO plantillas (ambito, clave, titulo, asunto, cuerpo)
-       VALUES ('correo',$1,$2,$3,$4)
+      `INSERT INTO plantillas (ambito, clave, titulo, asunto, cuerpo, categoria)
+       VALUES ('correo',$1,$2,$3,$4,$5)
        ON CONFLICT (ambito, clave) DO NOTHING`,
-      [p.clave, p.titulo, p.asunto, p.cuerpo]
+      [p.clave, p.titulo, p.asunto, p.cuerpo, p.categoria || null]
     );
   }
   await pool.query(

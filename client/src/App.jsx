@@ -68,6 +68,7 @@ export default function App() {
           <Route path="bandeja" element={<Bandeja />} />
           <Route path="solicitud/:id" element={<><Bandeja /><ExpedienteModal /></>} />
           <Route path="folios" element={<Folios />} />
+          <Route path="folios/solicitud/:id" element={<><Folios /><ExpedienteModal /></>} />
           <Route path="consolidado" element={<Consolidado />} />
           <Route
             path="configuracion"

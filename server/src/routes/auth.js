@@ -30,6 +30,8 @@ router.post('/login', async (req, res, next) => {
     const ok = await bcrypt.compare(password, u.password_hash);
     if (!ok) throw new ApiError(401, 'Credenciales inválidas');
 
+    await db.query('UPDATE usuarios SET ultimo_login = now() WHERE id = $1', [u.id]);
+
     const token = firmarStaff({ sub: u.id, usuario: u.usuario, rol: u.rol, nombre: u.nombre });
     res.json({
       token,

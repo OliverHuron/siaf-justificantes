@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api.js';
 
-const TABS = ['SMTP', 'Plantillas', 'Horarios', 'Parámetros'];
+const TABS = ['SMTP', 'Plantillas', 'Horarios', 'Parámetros', 'Adjuntos', 'Google Sheets'];
+
+// Categorías de plantillas de correo: definen en qué dropdown del expediente
+// aparece cada una (Rechazar / Requerir presencialmente), para no revolverlas.
+const CATEGORIAS = {
+  aprobado: 'Aprobado',
+  rechazo: 'Rechazo',
+  ventanilla: 'Ventanilla',
+  informacion: 'Solicitud de información',
+};
 
 export default function Configuracion() {
   const [tab, setTab] = useState('SMTP');
@@ -16,6 +25,8 @@ export default function Configuracion() {
       {tab === 'Plantillas' && <Plantillas />}
       {tab === 'Horarios' && <Horarios />}
       {tab === 'Parámetros' && <Parametros />}
+      {tab === 'Adjuntos' && <AdjuntosLimpieza />}
+      {tab === 'Google Sheets' && <SheetsConfig />}
     </div>
   );
 }
@@ -42,8 +53,12 @@ function Smtp() {
   }
   async function probar() {
     setErr(''); setOk('');
-    try { const r = await api('/config/smtp/test', { method: 'POST' }); setOk(`OK: ${r.user}@${r.host}`); }
-    catch (e) { setErr(e.message); }
+    try {
+      const body = { host: v.host, port: v.port, user: v.user, from: v.from };
+      if (v.pass) body.pass = v.pass;
+      const r = await api('/config/smtp/test', { method: 'POST', body });
+      setOk(`OK: ${r.user}@${r.host}`);
+    } catch (e) { setErr(e.message); }
   }
   return (
     <div className="card" style={{ maxWidth: 480 }}>
@@ -64,14 +79,20 @@ function Smtp() {
 }
 
 function PlantillaCard({ p, onGuardar, onEliminar }) {
-  const [f, setF] = useState({ titulo: p.titulo, asunto: p.asunto || '', cuerpo: p.cuerpo, activo: p.activo });
+  const [f, setF] = useState({
+    titulo: p.titulo, asunto: p.asunto || '', cuerpo: p.cuerpo,
+    activo: p.activo, categoria: p.categoria || '',
+  });
   const [abierta, setAbierta] = useState(false);
-  const sucio = f.titulo !== p.titulo || f.asunto !== (p.asunto || '') || f.cuerpo !== p.cuerpo || f.activo !== p.activo;
+  const sucio = f.titulo !== p.titulo || f.asunto !== (p.asunto || '') || f.cuerpo !== p.cuerpo
+    || f.activo !== p.activo || f.categoria !== (p.categoria || '');
+  const esOficio = p.ambito === 'cuerpo_oficio';
 
   return (
     <div className="tpl-card">
       <div className="tpl-card-head">
         <span className={`pill ${p.ambito === 'correo' ? 'azul' : 'neutro'}`}>{p.ambito}</span>
+        {p.categoria && <span className="pill neutro">{CATEGORIAS[p.categoria] || p.categoria}</span>}
         <span className={`pill ${f.activo ? 'ok' : 'neutro'}`}>{f.activo ? 'Activa' : 'Inactiva'}</span>
       </div>
       <div className="mono hint" style={{ margin: '6px 0 2px' }}>{p.clave}</div>
@@ -96,9 +117,17 @@ function PlantillaCard({ p, onGuardar, onEliminar }) {
           {p.ambito === 'correo' && <>
             <label>Asunto</label>
             <input type="text" value={f.asunto} onChange={(e) => setF({ ...f, asunto: e.target.value })} />
+            <label>Categoría</label>
+            <select value={f.categoria} onChange={(e) => setF({ ...f, categoria: e.target.value })}>
+              <option value="">Sin categoría</option>
+              {Object.entries(CATEGORIAS).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+            </select>
           </>}
-          <label>Cuerpo</label>
-          <textarea value={f.cuerpo} onChange={(e) => setF({ ...f, cuerpo: e.target.value })} style={{ minHeight: 140 }} />
+          <label>Cuerpo{esOficio ? ' (máx. 167 caracteres)' : ''}</label>
+          <textarea value={f.cuerpo} maxLength={esOficio ? 167 : undefined}
+            onChange={(e) => setF({ ...f, cuerpo: esOficio ? e.target.value.slice(0, 167) : e.target.value })}
+            style={{ minHeight: 140 }} />
+          {esOficio && <p className="hint" style={{ textAlign: 'right', margin: '2px 0 0' }}>{f.cuerpo.length}/167</p>}
           <div className="fila" style={{ marginTop: 10 }}>
             <button className="mini" disabled={!sucio} onClick={() => onGuardar(p.id, f)}>Guardar</button>
             <button className="plano mini" onClick={() => setAbierta(false)}>Cerrar</button>
@@ -114,7 +143,7 @@ function Plantillas() {
   const [err, setErr] = useState('');
   const [ok, setOk] = useState('');
   const [mostrarForm, setMostrarForm] = useState(false);
-  const [nueva, setNueva] = useState({ ambito: 'correo', clave: '', titulo: '', asunto: '', cuerpo: '' });
+  const [nueva, setNueva] = useState({ ambito: 'correo', clave: '', titulo: '', asunto: '', cuerpo: '', categoria: '' });
   function cargar() { api('/plantillas').then(setLista).catch((e) => setErr(e.message)); }
   useEffect(cargar, []);
 
@@ -134,13 +163,16 @@ function Plantillas() {
   async function crear() {
     setErr(''); setOk('');
     try {
-      await api('/plantillas', { body: nueva });
-      setNueva({ ambito: 'correo', clave: '', titulo: '', asunto: '', cuerpo: '' });
+      const body = { ...nueva };
+      if (body.ambito !== 'correo') delete body.categoria;
+      await api('/plantillas', { body });
+      setNueva({ ambito: 'correo', clave: '', titulo: '', asunto: '', cuerpo: '', categoria: '' });
       setMostrarForm(false);
       setOk('Creada'); cargar();
     } catch (e) { setErr(e.message); }
   }
   const nuevaValida = nueva.clave.trim() && nueva.titulo.trim() && nueva.cuerpo.trim();
+  const nuevaEsOficio = nueva.ambito === 'cuerpo_oficio';
 
   return (
     <div>
@@ -162,10 +194,19 @@ function Plantillas() {
             <input type="text" placeholder="título" value={nueva.titulo} onChange={(e) => setNueva({ ...nueva, titulo: e.target.value })} />
           </div>
           {nueva.ambito === 'correo' && (
-            <input type="text" placeholder="asunto" value={nueva.asunto}
-              onChange={(e) => setNueva({ ...nueva, asunto: e.target.value })} style={{ marginTop: 10 }} />
+            <div className="form-grid" style={{ marginTop: 10 }}>
+              <input type="text" placeholder="asunto" value={nueva.asunto}
+                onChange={(e) => setNueva({ ...nueva, asunto: e.target.value })} />
+              <select value={nueva.categoria} onChange={(e) => setNueva({ ...nueva, categoria: e.target.value })}>
+                <option value="">Sin categoría</option>
+                {Object.entries(CATEGORIAS).map(([v, t]) => <option key={v} value={v}>{t}</option>)}
+              </select>
+            </div>
           )}
-          <textarea placeholder="cuerpo" value={nueva.cuerpo} onChange={(e) => setNueva({ ...nueva, cuerpo: e.target.value })} style={{ marginTop: 10 }} />
+          <textarea placeholder="cuerpo" value={nueva.cuerpo} maxLength={nuevaEsOficio ? 167 : undefined}
+            onChange={(e) => setNueva({ ...nueva, cuerpo: nuevaEsOficio ? e.target.value.slice(0, 167) : e.target.value })}
+            style={{ marginTop: 10 }} />
+          {nuevaEsOficio && <p className="hint" style={{ textAlign: 'right', margin: '2px 0 0' }}>{nueva.cuerpo.length}/167</p>}
           <button className="mini" style={{ marginTop: 10 }} disabled={!nuevaValida} onClick={crear}>Crear</button>
         </div>
       )}
@@ -282,6 +323,166 @@ function ParametroItem({ clave, valor, onGuardar }) {
       <strong className="mono">{clave}</strong>
       <textarea value={txt} onChange={(e) => setTxt(e.target.value)} style={{ minHeight: 120, fontFamily: 'ui-monospace, monospace' }} />
       <button className="sec mini" style={{ marginTop: 8 }} onClick={() => onGuardar(clave, txt)}>Guardar</button>
+    </div>
+  );
+}
+
+function tamanoLegible(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function AdjuntosLimpieza() {
+  const [f, setF] = useState({ desde: '', hasta: '', matricula: '', folio: '' });
+  const [filas, setFilas] = useState(null);
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  function qs() {
+    const p = new URLSearchParams();
+    if (f.desde) p.set('desde', f.desde);
+    if (f.hasta) p.set('hasta', f.hasta);
+    if (f.matricula) p.set('matricula', f.matricula);
+    if (f.folio) p.set('folio', f.folio);
+    return p;
+  }
+  const hayFiltro = !!(f.desde || f.hasta || f.matricula || f.folio);
+
+  async function buscar() {
+    setErr('');
+    try { setFilas(await api(`/adjuntos?${qs()}`)); }
+    catch (e) { setErr(e.message); }
+  }
+  useEffect(() => { buscar(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function eliminarUno(a) {
+    if (!confirm(`¿Eliminar el adjunto "${a.nombre_original}"? Esta acción no se puede deshacer.`)) return;
+    setBusy(true); setErr(''); setOk('');
+    try {
+      await api(`/adjuntos/${a.id}`, { method: 'DELETE' });
+      setOk('Adjunto eliminado'); await buscar();
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  async function eliminarLote() {
+    if (!hayFiltro) { setErr('Indica al menos un filtro (fecha, matrícula o folio) para eliminar en lote.'); return; }
+    const n = filas ? filas.length : 0;
+    if (!confirm(`¿Eliminar los ${n} adjunto(s) que coinciden con el filtro? Esta acción no se puede deshacer.`)) return;
+    setBusy(true); setErr(''); setOk('');
+    try {
+      const r = await api(`/adjuntos?${qs()}`, { method: 'DELETE' });
+      setOk(`${r.eliminados} adjunto(s) eliminado(s)`); await buscar();
+    } catch (e) { setErr(e.message); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div>
+      <Aviso err={err} ok={ok} />
+      <p className="hint">
+        Elimina archivos adjuntos (recetas, tickets, documentos médicos) del almacenamiento del
+        servidor. Los folios y las solicitudes no se ven afectados, solo la evidencia adjunta.
+      </p>
+      <div className="card">
+        <div className="form-grid">
+          <label>Desde
+            <input type="date" value={f.desde} onChange={(e) => setF((s) => ({ ...s, desde: e.target.value }))} />
+          </label>
+          <label>Hasta
+            <input type="date" value={f.hasta} onChange={(e) => setF((s) => ({ ...s, hasta: e.target.value }))} />
+          </label>
+          <label>Matrícula
+            <input type="text" value={f.matricula} onChange={(e) => setF((s) => ({ ...s, matricula: e.target.value }))} />
+          </label>
+          <label>Folio
+            <input type="text" value={f.folio} onChange={(e) => setF((s) => ({ ...s, folio: e.target.value }))} />
+          </label>
+        </div>
+        <div className="fila" style={{ marginTop: 10 }}>
+          <button className="sec" disabled={busy} onClick={buscar}>Buscar</button>
+          <button className="peligro" disabled={busy || !hayFiltro} onClick={eliminarLote}>
+            Eliminar todos los resultados del filtro
+          </button>
+        </div>
+      </div>
+      {!filas ? <p>Cargando…</p> : (
+        <div className="card tabla-scroll">
+          <table>
+            <thead><tr><th>Subido</th><th>Tipo</th><th>Archivo</th><th>Tamaño</th><th>Alumno</th><th>Folio</th><th></th></tr></thead>
+            <tbody>
+              {filas.map((a) => (
+                <tr key={a.id}>
+                  <td>{new Date(a.subido_en).toLocaleString()}</td>
+                  <td>{a.tipo}</td>
+                  <td className="mono">{a.nombre_original}</td>
+                  <td>{tamanoLegible(a.tamano)}</td>
+                  <td>{a.nombre_declarado}<br /><span className="hint mono">{a.matricula_declarada}</span></td>
+                  <td className="mono">{a.folio || '—'}</td>
+                  <td><button className="peligro mini" disabled={busy} onClick={() => eliminarUno(a)}>Eliminar</button></td>
+                </tr>
+              ))}
+              {filas.length === 0 && <tr><td colSpan={7} className="hint">Sin adjuntos.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SheetsConfig() {
+  const [v, setV] = useState(null);
+  const [err, setErr] = useState('');
+  const [ok, setOk] = useState('');
+  useEffect(() => {
+    api('/config/sheets').then((r) => setV(r.valor)).catch((e) => {
+      if (e.status === 404) setV({ url: '', secreto: '', activo: true });
+      else setErr(e.message);
+    });
+  }, []);
+  if (!v) return <p>Cargando…</p>;
+
+  async function guardar() {
+    setErr(''); setOk('');
+    try {
+      await api('/config/sheets', { method: 'PUT', body: { valor: v } });
+      setOk('Guardado');
+    } catch (e) { setErr(e.message); }
+  }
+  async function probar() {
+    setErr(''); setOk('');
+    try {
+      const r = await api('/config/sheets/test', { method: 'POST', body: { url: v.url, secreto: v.secreto } });
+      setOk(`Conexión OK${r.respuesta ? `: ${r.respuesta}` : ''}`);
+    } catch (e) { setErr(e.message); }
+  }
+
+  return (
+    <div className="card" style={{ maxWidth: 480 }}>
+      <Aviso err={err} ok={ok} />
+      <p className="hint">
+        Al emitir o anular un folio se manda un aviso a un Web App de Google Apps Script,
+        que agrega/actualiza una fila en una hoja de cálculo. Ver <code>server/scripts/apps-script-sheets.gs</code>
+        para el script a pegar en Apps Script.
+      </p>
+      <label>URL del Web App</label>
+      <input type="text" value={v.url || ''} placeholder="https://script.google.com/macros/s/…/exec"
+        onChange={(e) => setV({ ...v, url: e.target.value })} />
+      <label>Secreto (debe coincidir con el del script)</label>
+      <input type="text" value={v.secreto || ''} onChange={(e) => setV({ ...v, secreto: e.target.value })} />
+      <label className="fila" style={{ alignItems: 'center', gap: 8, marginTop: 10 }}>
+        <input type="checkbox" checked={v.activo !== false}
+          onChange={(e) => setV({ ...v, activo: e.target.checked })} />
+        Activo
+      </label>
+      <div className="fila" style={{ marginTop: 12 }}>
+        <button onClick={guardar}>Guardar</button>
+        <button className="sec" disabled={!v.url} onClick={probar}>Probar conexión</button>
+      </div>
     </div>
   );
 }

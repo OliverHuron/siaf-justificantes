@@ -1,14 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api, apiBlob } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
 import Adjunto from '../../components/Adjunto.jsx';
 import DiasAprobados from '../../components/DiasAprobados.jsx';
+import DiasResumen from '../../components/DiasResumen.jsx';
 
 const PILL = {
-  pendiente: 'alerta', aprobada: 'ok', rechazada: 'mal',
+  pendiente: 'alerta', aprobada_pendiente_confirmacion: 'azul', aprobada: 'ok', rechazada: 'mal',
   requiere_ventanilla: 'azul', cancelada: 'neutro',
 };
+/**
+ * Para quien no sea supervisor (la encargada, sobre todo), una solicitud
+ * "aprobada_pendiente_confirmacion" se ve idéntica a una ya aprobada — no
+ * hay ninguna pista de que existe un segundo paso.
+ */
+function estadoVisible(estado, esSupervisor) {
+  if (estado === 'aprobada_pendiente_confirmacion') {
+    return esSupervisor ? { texto: 'aprobación', clase: 'azul' } : { texto: 'aprobada', clase: 'ok' };
+  }
+  return { texto: estado, clase: PILL[estado] || 'neutro' };
+}
 const ORD_NUM = {
   primero: 1, segundo: 2, tercero: 3, cuarto: 4, quinto: 5,
   sexto: 6, septimo: 7, 'séptimo': 7, octavo: 8, noveno: 9,
@@ -46,7 +58,7 @@ const fDiaCorto = (iso) => {
 };
 
 // Portal público para verificar recetas / incapacidades de instituciones públicas.
-const URL_RECETA_PUBLICA = 'https://serviciosdigitales.imss.gob.mx/portal-ciudadano/incapacidades';
+const URL_RECETA_PUBLICA = 'https://recetacompleta.gob.mx/login';
 
 function adjLabel(tipo, esImss) {
   if (tipo === 'receta') return esImss ? 'Receta IMSS' : 'Receta / Constancia';
@@ -58,6 +70,7 @@ function adjLabel(tipo, esImss) {
 export default function ExpedienteModal() {
   const { id } = useParams();
   const nav = useNavigate();
+  const loc = useLocation();
   const { staff } = useAuth();
   const puedeActuar = ['encargada', 'supervisor'].includes(staff.rol);
 
@@ -71,12 +84,15 @@ export default function ExpedienteModal() {
   const [adjSel, setAdjSel] = useState(0);
   const [diasAprob, setDiasAprob] = useState([]);
   const [aprob, setAprob] = useState({ plantilla_cuerpo_id: '', frase_cuerpo: '', fechas_verificadas_receta: false });
-  const [rech, setRech] = useState({ abierto: false, plantilla_clave: '', motivo: '' });
-  const [vent, setVent] = useState({ abierto: false, plantilla_clave: 'pasar_ventanilla', nota: '' });
+  // Solo un panel de dictamen abierto a la vez (rechazar / requerir presencialmente).
+  const [panel, setPanel] = useState(null); // null | 'rechazo' | 'ventanilla'
+  const [rech, setRech] = useState({ plantilla_clave: '', motivo: '' });
+  const [vent, setVent] = useState({ plantilla_clave: 'pasar_ventanilla', nota: '' });
   const [nota, setNota] = useState({ color: '', recordatorio: '' });
   const [preview, setPreview] = useState(false);
 
-  const cerrar = useCallback(() => nav('/staff/bandeja'), [nav]);
+  const origenFolios = loc.pathname.startsWith('/staff/folios/');
+  const cerrar = useCallback(() => nav(origenFolios ? '/staff/folios' : '/staff/bandeja'), [nav, origenFolios]);
 
   const cargar = useCallback(() => {
     api(`/revision/${id}`).then((data) => {
@@ -107,6 +123,10 @@ export default function ExpedienteModal() {
   const s = d?.solicitud;
   const esImss = s?.tipo === 'receta_imss';
   const editable = s && s.estado === 'pendiente' && puedeActuar;
+  // Doble aprobación: la encargada deja el dictamen listo, pero solo el
+  // supervisor puede confirmar (emitir folio + enviar los correos).
+  const porConfirmar = s && s.estado === 'aprobada_pendiente_confirmacion';
+  const puedeConfirmar = porConfirmar && staff.rol === 'supervisor';
   const grupos = useMemo(() => (Array.isArray(s?.grupos) ? s.grupos : []), [s]);
 
   async function accion(fn) {
@@ -167,12 +187,15 @@ export default function ExpedienteModal() {
                 </div>
 
                 {d.periodo_matricula && (
-                  <div className="exp-block" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span className="al-k" style={{ flex: '0 0 auto' }}>Días usados este periodo</span>
-                    <span className={`pill ${d.periodo_matricula.dias_usados >= 15 ? 'alerta' : 'neutro'}`}>
+                  <div className="exp-block" style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}
+                    title={`Desde ${fFecha(d.periodo_matricula.inicio)} · informativo, no bloquea el envío`}>
+                    <span className="al-k" style={{ flex: '0 0 auto' }}>Días usados</span>
+                    <span className={`pill ${d.periodo_matricula.dias_usados >= 15 ? 'alerta' : 'neutro'}`} style={{ flex: '0 0 auto' }}>
                       {d.periodo_matricula.dias_usados} de 15
                     </span>
-                    <span className="hint" style={{ margin: 0 }}>desde {fFecha(d.periodo_matricula.inicio)} · informativo, no bloquea el envío</span>
+                    <span className="hint" style={{ margin: 0, minWidth: 0, flex: '1 1 auto', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      desde {fFecha(d.periodo_matricula.inicio)} · informativo, no bloquea el envío
+                    </span>
                   </div>
                 )}
 
@@ -189,8 +212,11 @@ export default function ExpedienteModal() {
                               <tr key={h.id}>
                                 <td>{new Date(h.creado_en).toLocaleDateString()}</td>
                                 <td>{h.tipo}</td>
-                                <td className="mono">{(h.fechas || []).map(fFecha).join(', ')}</td>
-                                <td><span className={`pill ${PILL[h.estado] || 'neutro'}`}>{h.estado}</span></td>
+                                <td className="mono nowrap"><DiasResumen fechas={h.fechas} /></td>
+                                <td>{(() => {
+                                  const e = estadoVisible(h.estado, staff.rol === 'supervisor');
+                                  return <span className={`pill ${e.clase}`}>{e.texto}</span>;
+                                })()}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -347,6 +373,45 @@ export default function ExpedienteModal() {
                   </div>
                 )}
 
+                {puedeConfirmar && (
+                  <div className="exp-block">
+                    <h3 style={{ marginTop: 0 }}>Confirmación del supervisor</h3>
+                    <p className="hint" style={{ marginBottom: 10 }}>
+                      La encargada ya dejó listo el dictamen. Al confirmar se emite el folio
+                      y se envían los correos (oficio a profesores + acuse al alumno).
+                    </p>
+                    <div className="dictamen-btns">
+                      <button className="btn-aprobar" disabled={busy}
+                        onClick={() => accion(async () => {
+                          const r = await api(`/revision/${id}/confirmar`, { method: 'POST' });
+                          setOk(`Confirmada. Folio ${r.folio}. Notificados ${r.profesores_notificados}/${r.profesores_total}.`);
+                          cargar();
+                        })}>Confirmar y enviar</button>
+                      <button className="btn-rechazar" disabled={busy}
+                        onClick={() => setPanel((p) => (p === 'rechazo' ? null : 'rechazo'))}>Rechazar</button>
+                    </div>
+                    {panel === 'rechazo' && (
+                      <div style={{ marginTop: 12 }}>
+                        <label>Plantilla de rechazo</label>
+                        <select value={rech.plantilla_clave}
+                          onChange={(e) => setRech((r) => ({ ...r, plantilla_clave: e.target.value }))}>
+                          <option value="">Sin plantilla</option>
+                          {plCorreo.filter((p) => p.categoria === 'rechazo').map((p) => (
+                            <option key={p.id} value={p.clave}>{p.titulo}</option>
+                          ))}
+                        </select>
+                        <textarea value={rech.motivo} onChange={(e) => setRech((r) => ({ ...r, motivo: e.target.value }))}
+                          placeholder="Motivo del rechazo (se envía al alumno por correo)" />
+                        <button className="btn-rechazar" style={{ marginTop: 6 }} disabled={busy}
+                          onClick={() => accion(async () => {
+                            await api(`/revision/${id}/rechazar`, { body: { plantilla_clave: rech.plantilla_clave || undefined, motivo: rech.motivo || undefined } });
+                            setOk('Solicitud rechazada'); cargar();
+                          })}>Confirmar rechazo</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {editable && (
                   <div className="exp-block">
                     <h3 style={{ marginTop: 0 }}>Dictamen de la solicitud</h3>
@@ -358,9 +423,12 @@ export default function ExpedienteModal() {
                       {plCuerpo.map((p) => <option key={p.id} value={p.id}>{p.titulo}</option>)}
                     </select>
                     <label>…o texto libre para el oficio</label>
-                    <textarea value={aprob.frase_cuerpo}
-                      onChange={(e) => setAprob((a) => ({ ...a, frase_cuerpo: e.target.value }))}
+                    <textarea value={aprob.frase_cuerpo} maxLength={167}
+                      onChange={(e) => setAprob((a) => ({ ...a, frase_cuerpo: e.target.value.slice(0, 167) }))}
                       placeholder="por motivos de salud acreditados ante esta Secretaría…" />
+                    <p className="hint" style={{ textAlign: 'right', margin: '2px 0 0' }}>
+                      {aprob.frase_cuerpo.length}/167
+                    </p>
                     <label style={{ fontWeight: 400, display: 'flex', gap: 8, marginTop: 8 }}>
                       <input type="checkbox" style={{ width: 'auto' }} checked={aprob.fechas_verificadas_receta}
                         onChange={(e) => setAprob((a) => ({ ...a, fechas_verificadas_receta: e.target.checked }))} />
@@ -378,22 +446,26 @@ export default function ExpedienteModal() {
                               fechas_verificadas_receta: aprob.fechas_verificadas_receta,
                             },
                           });
-                          setOk(`Aprobada con ${diasAprob.length} día(s). Folio ${r.folio}. Notificados ${r.profesores_notificados}/${r.profesores_total}.`);
+                          setOk(r.folio
+                            ? `Aprobada con ${diasAprob.length} día(s). Folio ${r.folio}. Notificados ${r.profesores_notificados}/${r.profesores_total}.`
+                            : `Aprobada con ${diasAprob.length} día(s).`);
                           cargar();
                         })}>Aprobar</button>
                       <button className="btn-rechazar" disabled={busy}
-                        onClick={() => setRech((r) => ({ ...r, abierto: !r.abierto }))}>Rechazar</button>
+                        onClick={() => setPanel((p) => (p === 'rechazo' ? null : 'rechazo'))}>Rechazar</button>
                       <button className="btn-ventanilla" disabled={busy}
-                        onClick={() => setVent((v) => ({ ...v, abierto: !v.abierto }))}>Requerir presencialmente</button>
+                        onClick={() => setPanel((p) => (p === 'ventanilla' ? null : 'ventanilla'))}>Requerir presencialmente</button>
                     </div>
 
-                    {rech.abierto && (
+                    {panel === 'rechazo' && (
                       <div style={{ marginTop: 12 }}>
                         <label>Plantilla de rechazo</label>
                         <select value={rech.plantilla_clave}
                           onChange={(e) => setRech((r) => ({ ...r, plantilla_clave: e.target.value }))}>
                           <option value="">Sin plantilla</option>
-                          {plCorreo.map((p) => <option key={p.id} value={p.clave}>{p.titulo}</option>)}
+                          {plCorreo.filter((p) => p.categoria === 'rechazo').map((p) => (
+                            <option key={p.id} value={p.clave}>{p.titulo}</option>
+                          ))}
                         </select>
                         <textarea value={rech.motivo} onChange={(e) => setRech((r) => ({ ...r, motivo: e.target.value }))}
                           placeholder="Motivo del rechazo (se envía al alumno por correo)" />
@@ -405,13 +477,14 @@ export default function ExpedienteModal() {
                       </div>
                     )}
 
-                    {vent.abierto && (
+                    {panel === 'ventanilla' && (
                       <div style={{ marginTop: 12 }}>
                         <label>Plantilla / instrucciones</label>
                         <select value={vent.plantilla_clave}
                           onChange={(e) => setVent((v) => ({ ...v, plantilla_clave: e.target.value }))}>
-                          {plCorreo.map((p) => <option key={p.id} value={p.clave}>{p.titulo}</option>)}
-                          <option value="pasar_ventanilla">pasar_ventanilla (predeterminada)</option>
+                          {plCorreo.filter((p) => p.categoria === 'ventanilla').map((p) => (
+                            <option key={p.id} value={p.clave}>{p.titulo}</option>
+                          ))}
                         </select>
                         <textarea value={vent.nota} onChange={(e) => setVent((v) => ({ ...v, nota: e.target.value }))}
                           placeholder="Qué debe llevar el alumno a ventanilla" />

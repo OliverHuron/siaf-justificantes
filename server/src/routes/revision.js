@@ -17,12 +17,15 @@ const bitacora = require('../lib/bitacora');
 const { fechaOficio, textoDias, inicioPeriodoActual } = require('../lib/dias');
 const { rutaAbsoluta, DIR_FOLIOS } = require('../lib/storage');
 const { asegurarPdf } = require('../lib/oficio');
+const eventos = require('../lib/eventos');
+const sheets = require('../lib/sheets');
 
 const router = express.Router();
 router.use(requireStaff);
 
 const puedeLeer = requireRol('encargada', 'supervisor', 'coordinador');
 const puedeActuar = requireRol('encargada', 'supervisor');
+const soloSupervisor = requireRol('supervisor');
 
 // -- helpers --------------------------------------------------------------
 
@@ -78,7 +81,12 @@ router.get('/cola', puedeLeer, async (req, res, next) => {
     const val = [];
     const p = (v) => { val.push(v); return `$${val.length}`; };
 
-    if (estado) cond.push(`s.estado = ${p(estado)}`);
+    if (estado) {
+      // Admite una lista separada por comas (p. ej. el supervisor viendo
+      // "pendiente,aprobada_pendiente_confirmacion" como un solo filtro).
+      const lista = String(estado).split(',').map((x) => x.trim()).filter(Boolean);
+      cond.push(lista.length > 1 ? `s.estado = ANY(${p(lista)}::text[])` : `s.estado = ${p(lista[0])}`);
+    }
     if (estado_triage) cond.push(`s.estado_triage = ${p(estado_triage)}`);
     if (semestre) cond.push(`${p(semestre)} = ANY(s.semestres)`);
     if (seccion) cond.push(`${p(seccion)} = ANY(s.secciones)`);
@@ -86,7 +94,7 @@ router.get('/cola', puedeLeer, async (req, res, next) => {
     if (hasta) cond.push(`s.creado_en < (${p(hasta)}::date + 1)`);
     if (texto) {
       const ph = p(`%${texto}%`);
-      cond.push(`(s.nombre_declarado ILIKE ${ph} OR s.matricula_declarada ILIKE ${ph})`);
+      cond.push(`(s.nombre_declarado ILIKE ${ph} OR s.matricula_declarada ILIKE ${ph} OR f.folio ILIKE ${ph})`);
     }
     if (solo_marcadas === 'true' || solo_marcadas === '1') {
       cond.push(`(s.banderas <> '{}'::jsonb OR coalesce(s.recordatorio,'') <> '')`);
@@ -375,7 +383,9 @@ router.post('/:id/rechazar', puedeActuar, async (req, res, next) => {
   try {
     const s = await cargarSolicitud(req.params.id);
     if (!s) throw new ApiError(404, 'Solicitud no encontrada');
-    if (s.estado !== 'pendiente') throw new ApiError(409, 'La solicitud ya fue resuelta');
+    if (!['pendiente', 'aprobada_pendiente_confirmacion'].includes(s.estado)) {
+      throw new ApiError(409, 'La solicitud ya fue resuelta');
+    }
     const { plantilla_clave, motivo } = req.body || {};
     if (!plantilla_clave && !motivo) throw new ApiError(400, 'Indica un motivo o una plantilla');
 
@@ -389,6 +399,7 @@ router.post('/:id/rechazar', puedeActuar, async (req, res, next) => {
       actorTipo: 'staff', actorRef: req.usuario.usuario, accion: 'solicitud_rechazada',
       solicitudId: s.id, detalle: { motivo: motivo || plantilla_clave }, ip: req.ip,
     });
+    eventos.emitir('cambio');
     res.json({ ok: true });
   } catch (e) {
     next(e);
@@ -410,6 +421,7 @@ router.post('/:id/ventanilla', puedeActuar, async (req, res, next) => {
     await bitacora.registrar({
       actorTipo: 'staff', actorRef: req.usuario.usuario, accion: 'solicitud_ventanilla', solicitudId: s.id, ip: req.ip,
     });
+    eventos.emitir('cambio');
     res.json({ ok: true });
   } catch (e) {
     next(e);
@@ -417,8 +429,145 @@ router.post('/:id/ventanilla', puedeActuar, async (req, res, next) => {
 });
 
 /**
+ * Resuelve (y congela si hacía falta) los profesores a notificar de una solicitud.
+ */
+async function resolverYCongelarProfesores(s) {
+  let dest = (await db.query(
+    `SELECT id, materia, profesor_nombre, profesor_correo FROM solicitud_profesores
+      WHERE solicitud_id = $1 AND incluir = true`,
+    [s.id]
+  )).rows;
+  if (!dest.length) {
+    const yaHay = await db.query(`SELECT 1 FROM solicitud_profesores WHERE solicitud_id = $1 LIMIT 1`, [s.id]);
+    if (!yaHay.rowCount) {
+      const auto = await resolverProfesores(s);
+      if (auto.length) {
+        for (const p of auto) {
+          await db.query(
+            `INSERT INTO solicitud_profesores (solicitud_id, materia, profesor_nombre, profesor_correo, incluir, origen)
+             VALUES ($1,$2,$3,$4,true,'auto')`,
+            [s.id, p.materia, p.profesor_nombre || null, p.profesor_correo]
+          );
+        }
+        dest = auto;
+      }
+    }
+  }
+  return dest;
+}
+
+/**
+ * Paso final (solo supervisor, directo o vía /confirmar): emite folio, genera
+ * el PDF y envía los correos (oficio a profesores + acuse al alumno). Deja
+ * estado='aprobada'. Es lo único que de verdad "sale" del sistema.
+ */
+async function emitirYNotificar(s, { usuario, ip, diasTxt, frase, dest }) {
+  const emitido = await db.withTransaction(async (client) => {
+    const cfgPrefijo = await client.query(`SELECT valor FROM config WHERE clave='folio'`);
+    const prefijo = (cfgPrefijo.rows[0] && cfgPrefijo.rows[0].valor && cfgPrefijo.rows[0].valor.prefijo) || 'F';
+    const f = await folioLib.emitir(client, prefijo);
+
+    await client.query(
+      `INSERT INTO folios (solicitud_id, folio, token_qr, emitido_por) VALUES ($1,$2,$3,$4)`,
+      [s.id, f.folio, f.token_qr, usuario.sub]
+    );
+    await client.query(
+      `UPDATE solicitudes SET estado='aprobada', estado_triage='atendida', decidido_en=now(), decidido_por=$2
+       WHERE id=$1`,
+      [s.id, usuario.sub]
+    );
+    await bitacora.registrar({
+      actorTipo: 'staff', actorRef: usuario.usuario, accion: 'solicitud_aprobada',
+      solicitudId: s.id, detalle: { folio: f.folio, profesores: dest.map((d) => d.profesor_correo) }, ip,
+    }, client);
+    return f;
+  });
+
+  // PDF
+  const destinoPdf = path.join(DIR_FOLIOS, `${emitido.folio}.pdf`);
+  let pdfOk = true;
+  try {
+    await pdfLib.generarOficio(
+      {
+        folio: emitido.folio,
+        token_qr: emitido.token_qr,
+        fecha_oficio: fechaOficio(),
+        destinatario: destinatarioOficio(s.semestres, s.secciones),
+        nombre: s.nombre_declarado,
+        matricula: s.matricula_declarada,
+        dias_texto_oficio: diasTxt,
+        frase_cuerpo: frase,
+      },
+      destinoPdf
+    );
+    await db.query(`UPDATE folios SET pdf_ruta = $2 WHERE folio = $1`, [
+      emitido.folio, path.relative(config.storagePath, destinoPdf).split(path.sep).join('/'),
+    ]);
+  } catch (e) {
+    pdfOk = false;
+    console.error('[aprobar] fallo al generar PDF:', e.message);
+  }
+
+  // Correos: oficio a cada profesor + acuse al alumno
+  const attachments = pdfOk ? [{ filename: `Oficio-${emitido.folio}.pdf`, path: destinoPdf }] : [];
+  let enviados = 0;
+  for (const p of dest) {
+    try {
+      await mailer.enviar({
+        to: p.profesor_correo,
+        subject: `Justificación de inasistencia: ${s.nombre_declarado} (${emitido.folio})`,
+        text:
+          `Estimado(a) profesor(a) de "${p.materia}":\n\n` +
+          `Se adjunta el oficio No. ${emitido.folio} que justifica la inasistencia de ` +
+          `${s.nombre_declarado} (matrícula ${s.matricula_declarada}) ${diasTxt}.\n\n` +
+          `Puede verificar su autenticidad en ${config.publicUrl}/validar?folio=${encodeURIComponent(emitido.folio)}&token=${encodeURIComponent(emitido.token_qr)}\n\n` +
+          `Secretaría Académica, FCCA, UMSNH.`,
+        attachments,
+      });
+      enviados += 1;
+    } catch (e) {
+      console.error(`[aprobar] no se pudo enviar a ${p.profesor_correo}:`, e.message);
+    }
+  }
+  await db.query(
+    `UPDATE solicitud_profesores SET enviado_en = now() WHERE solicitud_id = $1 AND incluir = true`,
+    [s.id]
+  );
+
+  try {
+    await correoAlAlumno(s, { plantilla_clave: 'aprobado' }, { folio: emitido.folio });
+  } catch (e) {
+    console.error('[aprobar] no se pudo enviar acuse al alumno:', e.message);
+  }
+
+  const fechasEmitidas = (Array.isArray(s.fechas_aprobadas) && s.fechas_aprobadas.length
+    ? s.fechas_aprobadas : s.fechas || []).map((x) => String(x).slice(0, 10));
+  sheets.notificar({
+    accion: 'emitido',
+    folio: emitido.folio,
+    alumno: s.nombre_declarado,
+    matricula: s.matricula_declarada,
+    tipo: (TIPOS[s.tipo] || {}).etiqueta || s.tipo,
+    dias: fechasEmitidas.length,
+    fechas: fechasEmitidas,
+    emitido_en: new Date().toISOString(),
+  });
+
+  return { emitido, pdfOk, enviados };
+}
+
+/**
  * POST /api/revision/:id/aprobar
  * { plantilla_cuerpo_id?, frase_cuerpo?, dias_texto_oficio?, fechas_verificadas_receta? }
+ *
+ * Doble aprobación (control de seguridad): si quien aprueba es la encargada,
+ * esto solo dictamina y congela todo (días, plantilla del oficio, profesores a
+ * notificar) pero NO emite folio ni manda ningún correo — queda en
+ * 'aprobada_pendiente_confirmacion' hasta que el supervisor la confirme
+ * (POST /:id/confirmar). Si quien aprueba ya es el supervisor, se hace todo de
+ * una vez (como antes), porque su propia aprobación ya es la verificación.
+ * Desde el panel de la encargada esto se ve y se siente igual que antes: un
+ * solo botón "Aprobar" que saca la solicitud de su cola de pendientes.
  */
 router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
   try {
@@ -433,6 +582,9 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
     }
 
     const { plantilla_cuerpo_id, frase_cuerpo, dias_texto_oficio, fechas_verificadas_receta } = req.body || {};
+    if (frase_cuerpo && frase_cuerpo.length > 167) {
+      throw new ApiError(400, 'El texto libre del oficio no puede superar 167 caracteres');
+    }
 
     // Días aprobados por la encargada: subconjunto de los que pidió el alumno.
     // Si no se envían, se aprueban todos.
@@ -449,22 +601,7 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
       }
     }
 
-    // Lista de destinatarios: los congelados incluidos, o resolver por horario.
-    // Si no se resuelve ninguno, la solicitud se aprueba igual (sin notificar).
-    let dest = (await db.query(
-      `SELECT id, materia, profesor_nombre, profesor_correo FROM solicitud_profesores
-        WHERE solicitud_id = $1 AND incluir = true`,
-      [s.id]
-    )).rows;
-    let congelarAuto = false;
-    if (!dest.length) {
-      const yaHay = await db.query(`SELECT 1 FROM solicitud_profesores WHERE solicitud_id = $1 LIMIT 1`, [s.id]);
-      if (!yaHay.rowCount) {
-        dest = await resolverProfesores(s);
-        congelarAuto = dest.length > 0;
-      }
-    }
-
+    const dest = await resolverYCongelarProfesores(s);
     const diasTxt = (dias_texto_oficio && dias_texto_oficio.trim()) || textoDias(fechasAprob);
     const frase = await plantillas.cuerpoOficio({
       plantillaId: plantilla_cuerpo_id || null,
@@ -472,98 +609,66 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
       vars: varsPlantilla(s, { dias: diasTxt }),
     });
 
-    // Transacción: folio + folios row + estado. El PDF y los correos van después.
-    const emitido = await db.withTransaction(async (client) => {
-      const cfgPrefijo = await client.query(`SELECT valor FROM config WHERE clave='folio'`);
-      const prefijo = (cfgPrefijo.rows[0] && cfgPrefijo.rows[0].valor && cfgPrefijo.rows[0].valor.prefijo) || 'F';
-      const f = await folioLib.emitir(client, prefijo);
-
-      if (congelarAuto) {
-        for (const p of dest) {
-          await client.query(
-            `INSERT INTO solicitud_profesores (solicitud_id, materia, profesor_nombre, profesor_correo, incluir, origen)
-             VALUES ($1,$2,$3,$4,true,'auto')`,
-            [s.id, p.materia, p.profesor_nombre || null, p.profesor_correo]
-          );
-        }
-      }
-
-      await client.query(
-        `INSERT INTO folios (solicitud_id, folio, token_qr, emitido_por) VALUES ($1,$2,$3,$4)`,
-        [s.id, f.folio, f.token_qr, req.usuario.sub]
-      );
-      await client.query(
-        `UPDATE solicitudes SET estado='aprobada', estado_triage='atendida', decidido_en=now(),
-           decidido_por=$2, dias_texto_oficio=$3, frase_cuerpo=$4, plantilla_cuerpo_id=$5,
-           fechas_verificadas_receta=$6, fechas_aprobadas=$7::date[]
+    if (req.usuario.rol !== 'supervisor') {
+      // Encargada: solo deja el dictamen listo, para que el supervisor confirme.
+      await db.query(
+        `UPDATE solicitudes SET estado='aprobada_pendiente_confirmacion', estado_triage='atendida',
+           preaprobado_en=now(), preaprobado_por=$2, dias_texto_oficio=$3, frase_cuerpo=$4,
+           plantilla_cuerpo_id=$5, fechas_verificadas_receta=$6, fechas_aprobadas=$7::date[]
          WHERE id=$1`,
         [s.id, req.usuario.sub, diasTxt, frase, plantilla_cuerpo_id || null,
          !!fechas_verificadas_receta, fechasAprob]
       );
       await bitacora.registrar({
-        actorTipo: 'staff', actorRef: req.usuario.usuario, accion: 'solicitud_aprobada',
-        solicitudId: s.id, detalle: { folio: f.folio, profesores: dest.map((d) => d.profesor_correo) }, ip: req.ip,
-      }, client);
-      return f;
+        actorTipo: 'staff', actorRef: req.usuario.usuario, accion: 'solicitud_preaprobada',
+        solicitudId: s.id, detalle: { profesores: dest.map((d) => d.profesor_correo) }, ip: req.ip,
+      });
+      eventos.emitir('cambio');
+      return res.json({ ok: true, estado: 'aprobada_pendiente_confirmacion', dias: fechasAprob.length });
+    }
+
+    const { emitido, pdfOk, enviados } = await emitirYNotificar(s, {
+      usuario: req.usuario, ip: req.ip, diasTxt, frase, dest,
+    });
+    eventos.emitir('cambio');
+    res.json({
+      ok: true,
+      folio: emitido.folio,
+      pdf: pdfOk ? `/api/revision/${s.id}/pdf` : null,
+      pdf_generado: pdfOk,
+      profesores_notificados: enviados,
+      profesores_total: dest.length,
+    });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/**
+ * POST /api/revision/:id/confirmar  (solo supervisor)
+ * Confirma una solicitud que la encargada ya pre-aprobó: emite el folio,
+ * genera el PDF y envía los correos (esto es lo que de verdad sale del
+ * sistema). Usa el dictamen que la encargada ya dejó congelado.
+ */
+router.post('/:id/confirmar', soloSupervisor, async (req, res, next) => {
+  try {
+    const s = await cargarSolicitud(req.params.id);
+    if (!s) throw new ApiError(404, 'Solicitud no encontrada');
+    if (s.estado !== 'aprobada_pendiente_confirmacion') {
+      throw new ApiError(409, 'Esta solicitud no está pendiente de confirmación');
+    }
+    const dest = await resolverYCongelarProfesores(s);
+    const fechasAprob = (Array.isArray(s.fechas_aprobadas) && s.fechas_aprobadas.length
+      ? s.fechas_aprobadas : s.fechas || []).map((x) => String(x).slice(0, 10));
+    const diasTxt = s.dias_texto_oficio || textoDias(fechasAprob);
+    const frase = s.frase_cuerpo || await plantillas.cuerpoOficio({
+      plantillaId: s.plantilla_cuerpo_id, libre: '', vars: varsPlantilla(s, { dias: diasTxt }),
     });
 
-    // PDF
-    const destinoPdf = path.join(DIR_FOLIOS, `${emitido.folio}.pdf`);
-    let pdfOk = true;
-    try {
-      await pdfLib.generarOficio(
-        {
-          folio: emitido.folio,
-          token_qr: emitido.token_qr,
-          fecha_oficio: fechaOficio(),
-          destinatario: destinatarioOficio(s.semestres, s.secciones),
-          nombre: s.nombre_declarado,
-          matricula: s.matricula_declarada,
-          dias_texto_oficio: diasTxt,
-          frase_cuerpo: frase,
-        },
-        destinoPdf
-      );
-      await db.query(`UPDATE folios SET pdf_ruta = $2 WHERE folio = $1`, [
-        emitido.folio, path.relative(config.storagePath, destinoPdf).split(path.sep).join('/'),
-      ]);
-    } catch (e) {
-      pdfOk = false;
-      console.error('[aprobar] fallo al generar PDF:', e.message);
-    }
-
-    // Correos: oficio a cada profesor + acuse al alumno
-    const attachments = pdfOk ? [{ filename: `Oficio-${emitido.folio}.pdf`, path: destinoPdf }] : [];
-    let enviados = 0;
-    for (const p of dest) {
-      try {
-        await mailer.enviar({
-          to: p.profesor_correo,
-          subject: `Justificación de inasistencia: ${s.nombre_declarado} (${emitido.folio})`,
-          text:
-            `Estimado(a) profesor(a) de "${p.materia}":\n\n` +
-            `Se adjunta el oficio No. ${emitido.folio} que justifica la inasistencia de ` +
-            `${s.nombre_declarado} (matrícula ${s.matricula_declarada}) ${diasTxt}.\n\n` +
-            `Puede verificar su autenticidad en ${config.publicUrl}/validar?folio=${encodeURIComponent(emitido.folio)}&token=${encodeURIComponent(emitido.token_qr)}\n\n` +
-            `Secretaría Académica, FCCA, UMSNH.`,
-          attachments,
-        });
-        enviados += 1;
-      } catch (e) {
-        console.error(`[aprobar] no se pudo enviar a ${p.profesor_correo}:`, e.message);
-      }
-    }
-    await db.query(
-      `UPDATE solicitud_profesores SET enviado_en = now() WHERE solicitud_id = $1 AND incluir = true`,
-      [s.id]
-    );
-
-    try {
-      await correoAlAlumno(s, { plantilla_clave: 'aprobado' }, { folio: emitido.folio });
-    } catch (e) {
-      console.error('[aprobar] no se pudo enviar acuse al alumno:', e.message);
-    }
-
+    const { emitido, pdfOk, enviados } = await emitirYNotificar(s, {
+      usuario: req.usuario, ip: req.ip, diasTxt, frase, dest,
+    });
+    eventos.emitir('cambio');
     res.json({
       ok: true,
       folio: emitido.folio,

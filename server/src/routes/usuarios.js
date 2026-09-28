@@ -7,6 +7,7 @@ const config = require('../config');
 const { ApiError } = require('../middleware/error');
 const { requireStaff, requireRol } = require('../middleware/auth');
 const bitacora = require('../lib/bitacora');
+const { estaConectado } = require('../lib/sesion');
 
 const router = express.Router();
 router.use(requireStaff, requireRol('supervisor'));
@@ -17,10 +18,31 @@ const ROLES = ['encargada', 'supervisor', 'coordinador', 'enfermeria'];
 router.get('/', async (req, res, next) => {
   try {
     const r = await db.query(
-      `SELECT id, usuario, nombre, email, rol, activo, must_change_password, creado_en
+      `SELECT id, usuario, nombre, email, rol, activo, must_change_password, creado_en,
+              ultima_actividad
          FROM usuarios ORDER BY rol, usuario`
     );
-    res.json(r.rows);
+    res.json(r.rows.map((u) => ({ ...u, conectado: estaConectado(u.ultima_actividad) })));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** GET /api/usuarios/:id/sesion — última conexión, si está conectado ahora, horas totales. */
+router.get('/:id/sesion', async (req, res, next) => {
+  try {
+    const r = await db.query(
+      `SELECT ultimo_login, ultima_actividad, segundos_conectado FROM usuarios WHERE id = $1`,
+      [req.params.id]
+    );
+    if (!r.rowCount) throw new ApiError(404, 'Usuario no encontrado');
+    const u = r.rows[0];
+    res.json({
+      ultimo_login: u.ultimo_login,
+      ultima_actividad: u.ultima_actividad,
+      conectado: estaConectado(u.ultima_actividad),
+      horas_conectado: Math.round((u.segundos_conectado / 3600) * 10) / 10,
+    });
   } catch (e) {
     next(e);
   }

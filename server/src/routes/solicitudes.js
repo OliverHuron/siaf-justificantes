@@ -14,6 +14,7 @@ const {
   diasSemanaDeModalidad, iso,
 } = require('../lib/dias');
 const { resolverExpediente, matriculaDeCorreo } = require('../lib/expediente');
+const eventos = require('../lib/eventos');
 
 /**
  * Traduce (tipo de la UI, origen de atención) al `tipo` canónico + adjuntos requeridos.
@@ -245,6 +246,7 @@ router.post('/', requireAlumno, upload.fields(CAMPOS_ARCHIVO), async (req, res, 
       return solicitud;
     });
 
+    eventos.emitir('nueva_solicitud');
     res.status(201).json({
       id: creada.id,
       token_seguimiento: creada.token_seguimiento,

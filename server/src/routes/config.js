@@ -74,13 +74,52 @@ router.put('/:clave', async (req, res, next) => {
   }
 });
 
-/** POST /api/config/smtp/test  — verifica credenciales sin enviar. */
+/**
+ * POST /api/config/smtp/test  { host?, port?, user?, pass?, from? }
+ * Verifica credenciales sin enviar. Si vienen campos en el body (lo que hay
+ * escrito en el formulario, aunque no se haya guardado), se prueban esos en
+ * vez de los ya guardados en la BD.
+ */
 router.post('/smtp/test', async (req, res, next) => {
   try {
-    const r = await mailer.verificar();
+    const { host, port, user, pass, from } = req.body || {};
+    const overrides = {};
+    if (host) overrides.host = host;
+    if (port) overrides.port = Number(port);
+    if (user) overrides.user = user;
+    if (pass) overrides.pass = pass;
+    if (from) overrides.from = from;
+    const r = await mailer.verificar(Object.keys(overrides).length ? overrides : undefined);
     res.json(r);
   } catch (e) {
     next(new ApiError(400, `SMTP no responde: ${e.message}`));
+  }
+});
+
+/**
+ * POST /api/config/sheets/test  { url, secreto? }
+ * Manda un ping de prueba al Web App de Apps Script (sin guardar nada).
+ */
+router.post('/sheets/test', async (req, res, next) => {
+  try {
+    const { url, secreto } = req.body || {};
+    if (!url) throw new ApiError(400, 'Falta la URL del Web App');
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ secreto: secreto || '', accion: 'prueba' }),
+    });
+    const texto = await r.text();
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${texto.slice(0, 200)}`);
+    // Apps Script siempre responde 200 aunque el script reporte un error
+    // lógico (p. ej. secreto inválido) en el cuerpo JSON, así que hay que
+    // revisar también el campo "ok" del cuerpo, no solo el status HTTP.
+    let cuerpo;
+    try { cuerpo = JSON.parse(texto); } catch (_) { cuerpo = null; }
+    if (cuerpo && cuerpo.ok === false) throw new Error(cuerpo.error || 'el script reportó un error');
+    res.json({ ok: true, respuesta: texto.slice(0, 200) });
+  } catch (e) {
+    next(new ApiError(400, `No se pudo conectar: ${e.message}`));
   }
 });
 

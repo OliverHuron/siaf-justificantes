@@ -138,6 +138,11 @@ tr.clic:hover { background: #f8f9fb; }
 .tabla-siaf tbody td { padding: 11px 12px; }
 td.nowrap, th.nowrap { white-space: nowrap; }
 
+/* punto de estado de sesión (Usuarios): verde = conectada, gris = no conectada */
+.dot-sesion { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; }
+.dot-sesion.on { background: var(--ok); box-shadow: 0 0 0 3px var(--ok-bg); }
+.dot-sesion.off { background: #cbd5e1; }
+
 /* inputs/select editables dentro de una fila de tabla (p. ej. Usuarios) */
 .tabla-input {
   width: 100%; padding: 5px 8px; font-size: .88rem;
@@ -541,7 +546,8 @@ td.nowrap, th.nowrap { white-space: nowrap; }
 }
 
 .dictamen-btns { display: flex; gap: 10px; flex-wrap: wrap; }
-.dictamen-btns button { flex: 1 1 120px; padding: 12px 10px; border: none; border-radius: 10px; font-weight: 700; color: #fff; cursor: pointer; }
+.dictamen-btns button { flex: 1 1 120px; padding: 12px 10px; border-radius: 10px; font-weight: 700; }
+.btn-aprobar, .btn-rechazar, .btn-ventanilla { border: none; color: #fff; cursor: pointer; }
 .btn-aprobar { background: #16a34a; }
 .btn-aprobar:hover:not(:disabled) { background: #15803d; }
 .btn-rechazar { background: #dc2626; }

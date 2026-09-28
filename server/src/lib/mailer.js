@@ -6,10 +6,11 @@ const config = require('../config');
 const { descifrar } = require('./crypto');
 
 /**
- * Resuelve la configuración SMTP efectiva: primero la tabla `config` (editable
- * desde la UI), con respaldo en las variables de entorno.
+ * Resuelve la configuración SMTP efectiva: primero `overrides` (valores sin
+ * guardar, para "Probar conexión" desde Configuración), luego la tabla
+ * `config` (editable desde la UI), con respaldo en las variables de entorno.
  */
-async function resolverSmtp() {
+async function resolverSmtp(overrides) {
   let fila;
   try {
     const r = await db.query(`SELECT valor FROM config WHERE clave = 'smtp'`);
@@ -17,10 +18,10 @@ async function resolverSmtp() {
   } catch (_) {
     fila = null;
   }
-  const host = (fila && fila.host) || config.smtp.host;
-  const port = (fila && fila.port) || config.smtp.port;
-  const user = (fila && fila.user) || config.smtp.user;
-  const from = (fila && fila.from) || config.smtp.from;
+  const host = (overrides && overrides.host) || (fila && fila.host) || config.smtp.host;
+  const port = (overrides && overrides.port) || (fila && fila.port) || config.smtp.port;
+  const user = (overrides && overrides.user) || (fila && fila.user) || config.smtp.user;
+  const from = (overrides && overrides.from) || (fila && fila.from) || config.smtp.from;
   let pass = config.smtp.pass;
   if (fila && fila.pass_cifrada) {
     try {
@@ -29,6 +30,7 @@ async function resolverSmtp() {
       /* usa la de entorno */
     }
   }
+  if (overrides && overrides.pass) pass = overrides.pass;
   return { host, port, user, pass, from, secure: Number(port) === 465 };
 }
 
@@ -93,8 +95,8 @@ async function enviar({ to, subject, text, html, attachments }) {
 }
 
 /** Verifica credenciales SMTP sin enviar (para el botón "probar" de Configuración). */
-async function verificar() {
-  const smtp = await resolverSmtp();
+async function verificar(overrides) {
+  const smtp = await resolverSmtp(overrides);
   if (!smtp.user || !smtp.pass) throw new Error('SMTP no configurado');
   const transporter = nodemailer.createTransport({
     host: smtp.host,

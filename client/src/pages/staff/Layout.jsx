@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth.jsx';
 
@@ -34,6 +35,24 @@ export default function StaffLayout() {
   const iniciales = (staff.nombre || staff.usuario || '?').split(/\s+/).slice(0, 2).map((s) => s[0]).join('').toUpperCase();
 
   const link = ({ isActive }) => (isActive ? 'activo' : '');
+
+  // Cierra la sesión sola en cuanto el token caduca, sin esperar a que el
+  // usuario haga clic en algo (que dispararía un 401 y la cerraría igual,
+  // pero mientras tanto se quedaba "viendo" el panel sin poder usarlo).
+  useEffect(() => {
+    if (!staff?.exp) return undefined;
+    const msRestantes = staff.exp * 1000 - Date.now();
+    if (msRestantes <= 0) {
+      logoutStaff();
+      nav('/staff/acceso', { replace: true });
+      return undefined;
+    }
+    const t = setTimeout(() => {
+      logoutStaff();
+      nav('/staff/acceso', { replace: true });
+    }, msRestantes);
+    return () => clearTimeout(t);
+  }, [staff?.exp, logoutStaff, nav]);
 
   return (
     <div className="shell">

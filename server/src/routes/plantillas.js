@@ -21,9 +21,13 @@ router.get('/', requireRol('encargada', 'supervisor'), async (req, res, next) =>
       cond.push(`ambito = $${val.length}`);
     }
     if (req.query.activo === 'true') cond.push('activo = true');
+    if (req.query.categoria) {
+      val.push(req.query.categoria);
+      cond.push(`categoria = $${val.length}`);
+    }
     const where = cond.length ? `WHERE ${cond.join(' AND ')}` : '';
     const r = await db.query(
-      `SELECT id, ambito, clave, titulo, asunto, cuerpo, activo, actualizado_en
+      `SELECT id, ambito, clave, titulo, asunto, cuerpo, categoria, activo, actualizado_en
          FROM plantillas ${where} ORDER BY ambito, titulo`,
       val
     );
@@ -38,13 +42,17 @@ router.use(requireRol('supervisor'));
 /** POST /api/plantillas  { ambito, clave, titulo, asunto?, cuerpo } */
 router.post('/', async (req, res, next) => {
   try {
-    const { ambito, clave, titulo, asunto, cuerpo } = req.body || {};
+    const { ambito, clave, titulo, asunto, cuerpo, categoria } = req.body || {};
     if (!AMBITOS.includes(ambito)) throw new ApiError(400, 'Ámbito inválido');
     if (!clave || !titulo || !cuerpo) throw new ApiError(400, 'Faltan campos (clave, título, cuerpo)');
+    if (ambito === 'cuerpo_oficio' && cuerpo.length > 167) {
+      throw new ApiError(400, 'El cuerpo de una plantilla de oficio no puede superar 167 caracteres');
+    }
     const r = await db.query(
-      `INSERT INTO plantillas (ambito, clave, titulo, asunto, cuerpo)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [ambito, clave, titulo, ambito === 'correo' ? asunto || '' : null, cuerpo]
+      `INSERT INTO plantillas (ambito, clave, titulo, asunto, cuerpo, categoria)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [ambito, clave, titulo, ambito === 'correo' ? asunto || '' : null, cuerpo,
+       ambito === 'correo' ? categoria || null : null]
     );
     res.status(201).json(r.rows[0]);
   } catch (e) {
@@ -56,16 +64,27 @@ router.post('/', async (req, res, next) => {
 /** PATCH /api/plantillas/:id  { titulo?, asunto?, cuerpo?, activo? } */
 router.patch('/:id', async (req, res, next) => {
   try {
-    const { titulo, asunto, cuerpo, activo } = req.body || {};
+    const { titulo, asunto, cuerpo, activo, categoria } = req.body || {};
+    if (cuerpo) {
+      const actual = await db.query(`SELECT ambito FROM plantillas WHERE id = $1`, [req.params.id]);
+      if (actual.rows[0] && actual.rows[0].ambito === 'cuerpo_oficio' && cuerpo.length > 167) {
+        throw new ApiError(400, 'El cuerpo de una plantilla de oficio no puede superar 167 caracteres');
+      }
+    }
+    // `categoria` distingue "no viene en el body" (no tocar) de "viene vacía"
+    // (limpiarla): por eso no usa COALESCE como los demás campos.
+    const tieneCategoria = Object.prototype.hasOwnProperty.call(req.body || {}, 'categoria');
     const r = await db.query(
       `UPDATE plantillas SET
          titulo = COALESCE($2, titulo),
          asunto = COALESCE($3, asunto),
          cuerpo = COALESCE($4, cuerpo),
          activo = COALESCE($5, activo),
+         categoria = CASE WHEN $6 THEN $7 ELSE categoria END,
          actualizado_en = now()
        WHERE id = $1 RETURNING *`,
-      [req.params.id, titulo ?? null, asunto ?? null, cuerpo ?? null, typeof activo === 'boolean' ? activo : null]
+      [req.params.id, titulo ?? null, asunto ?? null, cuerpo ?? null,
+       typeof activo === 'boolean' ? activo : null, tieneCategoria, categoria || null]
     );
     if (!r.rowCount) throw new ApiError(404, 'Plantilla no encontrada');
     res.json(r.rows[0]);

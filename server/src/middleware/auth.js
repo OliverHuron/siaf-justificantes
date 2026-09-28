@@ -3,6 +3,7 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config');
 const { ApiError } = require('./error');
+const { registrarActividad } = require('../lib/sesion');
 
 /**
  * Firma un token de personal. `payload` debe incluir al menos { sub, rol }.
@@ -29,17 +30,21 @@ function extraerToken(req) {
 }
 
 /** Exige un token válido de personal. Deja `req.usuario`. */
-function requireStaff(req, res, next) {
+async function requireStaff(req, res, next) {
   const token = extraerToken(req);
   if (!token) return next(new ApiError(401, 'Falta el token de sesión'));
+  let claims;
   try {
-    const claims = jwt.verify(token, config.jwt.secret);
+    claims = jwt.verify(token, config.jwt.secret);
     if (claims.tipo !== 'staff') throw new Error('tipo incorrecto');
-    req.usuario = claims;
-    next();
   } catch (e) {
-    next(new ApiError(401, 'Sesión inválida o expirada'));
+    return next(new ApiError(401, 'Sesión inválida o expirada'));
   }
+  req.usuario = claims;
+  // Con await: para que una lectura inmediata después (p. ej. GET /usuarios)
+  // ya vea la actividad de esta misma petición, no una carrera con ella.
+  await registrarActividad(claims.sub);
+  next();
 }
 
 /** Exige que el personal autenticado tenga alguno de los roles dados. */

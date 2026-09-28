@@ -17,6 +17,8 @@ const usuarios = require('./usuarios');
 const consolidado = require('./consolidado');
 const enfermeria = require('./enfermeria');
 const expediente = require('./expediente');
+const eventos = require('./eventos');
+const adjuntos = require('./adjuntos');
 
 const router = express.Router();
 
@@ -35,5 +37,7 @@ router.use('/usuarios', usuarios);
 router.use('/consolidado', consolidado);
 router.use('/enfermeria', enfermeria);
 router.use('/expediente', expediente);
+router.use('/eventos', eventos);
+router.use('/adjuntos', adjuntos);
 
 module.exports = router;

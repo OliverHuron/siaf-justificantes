@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useAuth } from '../../auth.jsx';
 
@@ -9,6 +10,7 @@ export default function Folios() {
 }
 
 function ListaFolios({ esSup }) {
+  const nav = useNavigate();
   const [q, setQ] = useState('');
   const [filas, setFilas] = useState(null);
   const [err, setErr] = useState('');
@@ -55,7 +57,13 @@ function ListaFolios({ esSup }) {
                   <td>{f.anulado_en
                     ? <span className="pill mal">anulado</span>
                     : <span className="pill ok">vigente</span>}</td>
-                  <td>{esSup && !f.anulado_en && <button className="peligro mini" onClick={() => anular(f)}>Anular</button>}</td>
+                  <td>
+                    {esSup && (
+                      <button className="sec mini" style={{ marginRight: 6 }}
+                        onClick={() => nav(`/staff/folios/solicitud/${f.solicitud_id}`)}>Ver expediente</button>
+                    )}
+                    {esSup && !f.anulado_en && <button className="peligro mini" onClick={() => anular(f)}>Anular</button>}
+                  </td>
                 </tr>
               ))}
               {filas.length === 0 && <tr><td colSpan={6} className="hint">Sin folios.</td></tr>}

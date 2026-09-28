@@ -10,10 +10,73 @@ function Aviso({ err, ok }) {
   </>;
 }
 
+/** "hace 3 h", "hace 2 días", etc. */
+function hace(iso) {
+  if (!iso) return 'nunca';
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.round(ms / 60000);
+  if (min < 1) return 'justo ahora';
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.round(h / 24)} día(s)`;
+}
+function fFechaHora(iso) {
+  if (!iso) return 'sin registro';
+  return new Date(iso).toLocaleString('es-MX', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+/** Diálogo con el detalle de sesión de un usuario (última conexión, conectado/horas). */
+function SesionDialog({ u, onClose }) {
+  const [s, setS] = useState(null);
+  const [err, setErr] = useState('');
+  useEffect(() => {
+    api(`/usuarios/${u.id}/sesion`).then(setS).catch((e) => setErr(e.message));
+  }, [u.id]);
+
+  return (
+    <div className="sg-overlay" onClick={onClose}>
+      <div className="sg-dialog" style={{ maxWidth: 360 }} onClick={(e) => e.stopPropagation()}>
+        <div className="sg-dialog-head">
+          <strong>Sesión de {u.usuario}</strong>
+          <button type="button" className="sg-x" onClick={onClose}>×</button>
+        </div>
+        {err && <div className="aviso error">{err}</div>}
+        {!s && !err ? <p className="hint">Cargando…</p> : s && (
+          <div className="al-rows" style={{ marginTop: 8 }}>
+            <div className="al-row">
+              <span className="al-k">Estado</span>
+              <span className="al-v">
+                <span className={`dot-sesion ${s.conectado ? 'on' : 'off'}`} />
+                {s.conectado ? 'Conectada' : 'No conectada'}
+              </span>
+            </div>
+            <div className="al-row">
+              <span className="al-k">Última sesión iniciada</span>
+              <span className="al-v">{fFechaHora(s.ultimo_login)}</span>
+            </div>
+            <div className="al-row">
+              <span className="al-k">Última actividad</span>
+              <span className="al-v">{hace(s.ultima_actividad)}</span>
+            </div>
+            <div className="al-row">
+              <span className="al-k">Horas conectada (total)</span>
+              <span className="al-v"><b>{s.horas_conectado}</b> h</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function FilaUsuario({ u, onGuardar, onEliminar, onCambiarPassword, onResetTemporal, onToggleActivo }) {
   const [f, setF] = useState({ usuario: u.usuario, nombre: u.nombre, email: u.email || '', rol: u.rol });
   const [pass, setPass] = useState('');
   const [mostrarPass, setMostrarPass] = useState(false);
+  const [mostrarSesion, setMostrarSesion] = useState(false);
   const sucio = f.usuario !== u.usuario || f.nombre !== u.nombre || f.email !== (u.email || '') || f.rol !== u.rol;
 
   return (
@@ -28,6 +91,19 @@ function FilaUsuario({ u, onGuardar, onEliminar, onCambiarPassword, onResetTempo
           </select>
         </td>
         <td><span className={`pill ${u.activo ? 'ok' : 'neutro'}`}>{u.activo ? 'Activo' : 'Inactivo'}</span></td>
+        <td>
+          <span className="fila" style={{ alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
+            <span className={`dot-sesion ${u.conectado ? 'on' : 'off'}`} title={u.conectado ? 'Conectada' : 'No conectada'} />
+            <button type="button" className="icono-btn" title="Ver sesión" onClick={() => setMostrarSesion(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+          </span>
+          {mostrarSesion && <SesionDialog u={u} onClose={() => setMostrarSesion(false)} />}
+        </td>
         <td className="fila" style={{ flexWrap: 'wrap' }}>
           <button className="mini" disabled={!sucio} onClick={() => onGuardar(u.id, f)}>Guardar</button>
           <button className="plano mini" onClick={() => onToggleActivo(u)}>{u.activo ? 'Desactivar' : 'Activar'}</button>
@@ -38,7 +114,7 @@ function FilaUsuario({ u, onGuardar, onEliminar, onCambiarPassword, onResetTempo
       </tr>
       {mostrarPass && (
         <tr>
-          <td colSpan={6}>
+          <td colSpan={7}>
             <div className="fila">
               <input type="password" placeholder="Nueva contraseña (mín. 8)" value={pass}
                 onChange={(e) => setPass(e.target.value)} style={{ maxWidth: 240 }} />
@@ -141,7 +217,7 @@ export default function Usuarios() {
       <div className="card tabla-scroll">
         <table>
           <thead>
-            <tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th></th></tr>
+            <tr><th>Usuario</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th>Sesión</th><th></th></tr>
           </thead>
           <tbody>
             {lista.map((u) => (
@@ -149,7 +225,7 @@ export default function Usuarios() {
                 onCambiarPassword={cambiarPassword} onResetTemporal={resetTemporal}
                 onToggleActivo={toggleActivo} />
             ))}
-            {lista.length === 0 && <tr><td colSpan={6} className="hint">Sin usuarios.</td></tr>}
+            {lista.length === 0 && <tr><td colSpan={7} className="hint">Sin usuarios.</td></tr>}
           </tbody>
         </table>
       </div>
