@@ -171,19 +171,36 @@ export default function NuevaSolicitud() {
         <span className="flanco flanco-der" aria-hidden="true">
           <img src="/UMSNHLogo1.png" alt="" />
         </span>
-        <div className="wrap" style={{ maxWidth: 560, textAlign: 'center' }}>
-          <div className="check-ok" aria-hidden="true">
-            <svg viewBox="0 0 52 52">
-              <circle className="check-ok-circulo" cx="26" cy="26" r="25" />
-              <path className="check-ok-palomita" fill="none" d="M14 27l7 7 16-16" />
-            </svg>
+        <div className="wrap enviada-wrap">
+          <div className="card enviada-card">
+            <div className="check-ok" aria-hidden="true">
+              <svg viewBox="0 0 52 52">
+                <circle className="check-ok-circulo" cx="26" cy="26" r="25" />
+                <path className="check-ok-palomita" fill="none" d="M14 27l7 7 16-16" />
+              </svg>
+            </div>
+            <h1>Solicitud enviada</h1>
+            <p className="enviada-texto">
+              Tu solicitud quedó registrada correctamente para <b>{f.nombre.trim() || alumno?.email}</b>.
+            </p>
+            <div className="enviada-pasos">
+              <div className="enviada-paso">
+                <svg className="enviada-paso-ico" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>Recibirás un acuse por <b>correo institucional</b> ({alumno?.email}).</span>
+              </div>
+              <div className="enviada-paso">
+                <svg className="enviada-paso-ico" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>La Secretaría revisará tu solicitud; si necesita algo más, te escribirá <b>por correo</b>.</span>
+              </div>
+            </div>
+            <Link className="btn sec" to="/" onClick={() => setAlumnoToken(null)}>Volver al inicio</Link>
           </div>
-          <h1>Solicitud enviada</h1>
-          <div className="aviso exito">
-            Tu solicitud quedó registrada. Recibirás un acuse en tu correo institucional y,
-            si la Secretaría necesita algo más, te contactará por ese medio.
-          </div>
-          <Link className="btn sec" to="/" onClick={() => setAlumnoToken(null)}>Volver al inicio</Link>
         </div>
       </>
     );

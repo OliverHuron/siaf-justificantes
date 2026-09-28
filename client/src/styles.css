@@ -669,13 +669,36 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   .flanco-der img { display: block; height: 380px; width: auto; }
 }
 
-/* Check animado de la pantalla "Solicitud enviada" */
-.check-ok { width: 84px; height: 84px; margin: 32px auto 18px; }
-.check-ok svg { width: 100%; height: 100%; display: block; overflow: visible; }
+/* Pantalla "Solicitud enviada" */
+.enviada-wrap { display: flex; align-items: center; justify-content: center; min-height: calc(100vh - 40px); }
+.enviada-card {
+  max-width: 460px; width: 100%; text-align: center; padding: 40px 36px 32px;
+  animation: enviada-entra .5s ease-out both;
+}
+.enviada-texto { color: var(--gris); margin: 2px 0 22px; }
+.enviada-pasos { display: flex; flex-direction: column; gap: 10px; text-align: left; margin-bottom: 26px; }
+.enviada-paso {
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--fondo); border-radius: 10px; padding: 10px 12px; font-size: .88rem;
+}
+.enviada-paso-ico { font-size: 1.15rem; line-height: 1.3; flex: 0 0 auto; }
+@keyframes enviada-entra { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* Check animado: aparece (rebote + trazo) y luego un pulso en bucle lento,
+   para que la animación no dependa de que alguien esté mirando justo el
+   instante en que aparece. */
+.check-ok { position: relative; width: 104px; height: 104px; margin: 0 auto 14px; }
+.check-ok::before {
+  content: '';
+  position: absolute; inset: 0; border-radius: 50%;
+  background: var(--ok);
+  animation: check-pulso 2.2s ease-out .9s infinite;
+}
+.check-ok svg { position: relative; z-index: 1; width: 100%; height: 100%; display: block; overflow: visible; }
 .check-ok-circulo {
   fill: var(--ok);
   transform-origin: 26px 26px;
-  animation: check-rebote .45s cubic-bezier(.34, 1.56, .64, 1) both;
+  animation: check-rebote .5s cubic-bezier(.34, 1.56, .64, 1) both;
 }
 .check-ok-palomita {
   stroke: #fff;
@@ -684,12 +707,13 @@ td.nowrap, th.nowrap { white-space: nowrap; }
   stroke-linejoin: round;
   stroke-dasharray: 34;
   stroke-dashoffset: 34;
-  animation: check-trazo .3s .35s ease-out forwards;
+  animation: check-trazo .35s .4s ease-out forwards;
 }
 @keyframes check-rebote { from { transform: scale(0); } to { transform: scale(1); } }
 @keyframes check-trazo { to { stroke-dashoffset: 0; } }
-@media (prefers-reduced-motion: reduce) {
-  .check-ok-circulo, .check-ok-palomita { animation: none; stroke-dashoffset: 0; }
+@keyframes check-pulso {
+  0% { transform: scale(1); opacity: .55; }
+  100% { transform: scale(1.55); opacity: 0; }
 }
 
 .just-wrap { max-width: 1080px; margin: 0 auto; padding: 22px 20px 80px; }
