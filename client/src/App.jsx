@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth.jsx';
 
-import Inicio from './pages/Inicio.jsx';
 import AlumnoLogin from './pages/alumno/Login.jsx';
 import NuevaSolicitud from './pages/alumno/NuevaSolicitud.jsx';
 import Validar from './pages/Validar.jsx';
@@ -41,7 +40,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
-        <Route path="/" element={<Inicio />} />
+        <Route path="/" element={<Navigate to="/solicitar/acceso" replace />} />
 
         {/* Alumno */}
         <Route path="/solicitar/acceso" element={<SolicitarAcceso />} />
