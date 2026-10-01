@@ -19,6 +19,7 @@ const QRCode = require('qrcode');
 const config = require('../config');
 
 const PLANTILLA = path.join(__dirname, '..', '..', 'templates', 'oficio.html');
+const FONDO_ARCHIVO = path.join(__dirname, '..', '..', 'templates', 'oficio-fondo.jpg');
 
 const PAGE_W = 612; // Letter, pt
 const PAGE_H = 792;
@@ -54,8 +55,11 @@ function extraerImagenes(html) {
 }
 
 // Se leen una sola vez al cargar el módulo (no en cada request/aprobación).
-// Orden en el html: fondo de .page, logo-fcca chico, firma-img.
-const [IMG_FONDO, IMG_LOGO, IMG_FIRMA] = extraerImagenes(fs.readFileSync(PLANTILLA, 'utf8'));
+// El fondo ya no sale de oficio.html (quedó obsoleto, baja resolución):
+// viene de un archivo aparte, hecho a partir del diseño vectorial en Corel.
+// Logo chico y firma siguen saliendo del html, en orden de aparición ahí.
+const [, IMG_LOGO, IMG_FIRMA] = extraerImagenes(fs.readFileSync(PLANTILLA, 'utf8'));
+const IMG_FONDO = { tipo: 'jpg', buffer: fs.readFileSync(FONDO_ARCHIVO) };
 
 /**
  * Envuelve `tramos` (con negrita por tramo) a líneas que quepan en `anchoPt`.
