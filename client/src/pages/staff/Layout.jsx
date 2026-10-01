@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth.jsx';
+import Toast from '../../components/Toast.jsx';
 
 const I = {
   bandeja: <path d="M3 7h18M3 12h18M3 17h18" />,
@@ -87,6 +88,7 @@ export default function StaffLayout() {
       <main className="shell-main">
         <Outlet />
       </main>
+      <Toast />
     </div>
   );
 }

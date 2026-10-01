@@ -384,7 +384,7 @@ export default function ExpedienteModal() {
                       <button className="btn-aprobar" disabled={busy}
                         onClick={() => accion(async () => {
                           const r = await api(`/revision/${id}/confirmar`, { method: 'POST' });
-                          setOk(`Confirmada. Folio ${r.folio}. Notificados ${r.profesores_notificados}/${r.profesores_total}.`);
+                          setOk(`Confirmada. Folio ${r.folio}. Generando el PDF y enviando los correos…`);
                           cargar();
                         })}>Confirmar y enviar</button>
                       <button className="btn-rechazar" disabled={busy}
@@ -447,7 +447,7 @@ export default function ExpedienteModal() {
                             },
                           });
                           setOk(r.folio
-                            ? `Aprobada con ${diasAprob.length} día(s). Folio ${r.folio}. Notificados ${r.profesores_notificados}/${r.profesores_total}.`
+                            ? `Aprobada con ${diasAprob.length} día(s). Folio ${r.folio}. Generando el PDF y enviando los correos…`
                             : `Aprobada con ${diasAprob.length} día(s).`);
                           cargar();
                         })}>Aprobar</button>

@@ -61,14 +61,18 @@ function varsPlantilla(s, extra = {}) {
   };
 }
 
-async function correoAlAlumno(s, { plantilla_clave, motivo, nota, asunto }, extraVars = {}) {
+async function construirCorreoAlumno(s, { plantilla_clave, motivo, nota, asunto }, extraVars = {}) {
   const { asunto: asu, cuerpo } = await plantillas.correo({
     clave: plantilla_clave || null,
     libre: motivo || nota || '',
     asuntoLibre: asunto,
     vars: varsPlantilla(s, { motivo_rechazo: motivo || '', nota: nota || '', ...extraVars }),
   });
-  await mailer.enviar({ to: s.email_alumno, subject: asu, text: cuerpo });
+  return { to: s.email_alumno, subject: asu, text: cuerpo };
+}
+
+async function correoAlAlumno(s, opts, extraVars = {}) {
+  await mailer.enviar(await construirCorreoAlumno(s, opts, extraVars));
 }
 
 // -- cola y detalle -----------------------------------------------------
@@ -457,12 +461,12 @@ async function resolverYCongelarProfesores(s) {
 }
 
 /**
- * Paso final (solo supervisor, directo o vía /confirmar): emite folio, genera
- * el PDF y envía los correos (oficio a profesores + acuse al alumno). Deja
- * estado='aprobada'. Es lo único que de verdad "sale" del sistema.
+ * Crea el folio y deja la solicitud en estado='aprobada'. Es la parte rápida
+ * (solo BD, sin PDF ni correos) — lo único que el "Aprobar"/"Confirmar" del
+ * supervisor espera antes de responder.
  */
-async function emitirYNotificar(s, { usuario, ip, diasTxt, frase, dest }) {
-  const emitido = await db.withTransaction(async (client) => {
+async function crearFolio(s, { usuario, ip, dest }) {
+  return db.withTransaction(async (client) => {
     const cfgPrefijo = await client.query(`SELECT valor FROM config WHERE clave='folio'`);
     const prefijo = (cfgPrefijo.rows[0] && cfgPrefijo.rows[0].valor && cfgPrefijo.rows[0].valor.prefijo) || 'F';
     const f = await folioLib.emitir(client, prefijo);
@@ -482,11 +486,21 @@ async function emitirYNotificar(s, { usuario, ip, diasTxt, frase, dest }) {
     }, client);
     return f;
   });
+}
 
-  // PDF
-  const destinoPdf = path.join(DIR_FOLIOS, `${emitido.folio}.pdf`);
-  let pdfOk = true;
+const REINTENTOS_NOTIFICACION = [5000, 15000, 40000]; // 5s, 15s, 40s
+
+/**
+ * Parte lenta (PDF + correos): se llama SIN esperarla desde la ruta, para que
+ * "Aprobar"/"Confirmar" respondan en cuanto el folio existe. Si algo falla
+ * (PDF o SMTP), reintenta sola unas veces; si al final no puede, avisa por
+ * SSE (toast) para que el supervisor sepa que hace falta revisar ese folio.
+ * El folio y los profesores a notificar ya quedaron fijos en `crearFolio`,
+ * así que un reintento no duplica nada, solo repite PDF+envío.
+ */
+async function procesarPdfYCorreos(s, emitido, { diasTxt, frase, dest }, intento = 0) {
   try {
+    const destinoPdf = path.join(DIR_FOLIOS, `${emitido.folio}.pdf`);
     await pdfLib.generarOficio(
       {
         folio: emitido.folio,
@@ -503,57 +517,62 @@ async function emitirYNotificar(s, { usuario, ip, diasTxt, frase, dest }) {
     await db.query(`UPDATE folios SET pdf_ruta = $2 WHERE folio = $1`, [
       emitido.folio, path.relative(config.storagePath, destinoPdf).split(path.sep).join('/'),
     ]);
-  } catch (e) {
-    pdfOk = false;
-    console.error('[aprobar] fallo al generar PDF:', e.message);
-  }
 
-  // Correos: oficio a cada profesor + acuse al alumno
-  const attachments = pdfOk ? [{ filename: `Oficio-${emitido.folio}.pdf`, path: destinoPdf }] : [];
-  let enviados = 0;
-  for (const p of dest) {
-    try {
-      await mailer.enviar({
-        to: p.profesor_correo,
-        subject: `Justificación de inasistencia: ${s.nombre_declarado} (${emitido.folio})`,
-        text:
-          `Estimado(a) profesor(a) de "${p.materia}":\n\n` +
-          `Se adjunta el oficio No. ${emitido.folio} que justifica la inasistencia de ` +
-          `${s.nombre_declarado} (matrícula ${s.matricula_declarada}) ${diasTxt}.\n\n` +
-          `Puede verificar su autenticidad en ${config.publicUrl}/validar?folio=${encodeURIComponent(emitido.folio)}&token=${encodeURIComponent(emitido.token_qr)}\n\n` +
-          `Secretaría Académica, FCCA, UMSNH.`,
-        attachments,
+    // Un solo lote de correos (oficio a cada profesor + acuse al alumno),
+    // reutilizando una sola conexión SMTP en vez de abrir una por correo.
+    const attachments = [{ filename: `Oficio-${emitido.folio}.pdf`, path: destinoPdf }];
+    const mensajesProf = dest.map((p) => ({
+      to: p.profesor_correo,
+      subject: `Justificación de inasistencia: ${s.nombre_declarado} (${emitido.folio})`,
+      text:
+        `Estimado(a) profesor(a) de "${p.materia}":\n\n` +
+        `Se adjunta el oficio No. ${emitido.folio} que justifica la inasistencia de ` +
+        `${s.nombre_declarado} (matrícula ${s.matricula_declarada}) ${diasTxt}.\n\n` +
+        `Puede verificar su autenticidad en ${config.publicUrl}/validar?folio=${encodeURIComponent(emitido.folio)}&token=${encodeURIComponent(emitido.token_qr)}\n\n` +
+        `Secretaría Académica, FCCA, UMSNH.`,
+      attachments,
+    }));
+    const mensajeAlumno = await construirCorreoAlumno(s, { plantilla_clave: 'aprobado' }, { folio: emitido.folio });
+    const resultados = await mailer.enviarLote([...mensajesProf, mensajeAlumno]);
+    const enviados = resultados.slice(0, dest.length).filter((r) => r.ok).length;
+
+    await db.query(
+      `UPDATE solicitud_profesores SET enviado_en = now() WHERE solicitud_id = $1 AND incluir = true`,
+      [s.id]
+    );
+
+    const fechasEmitidas = (Array.isArray(s.fechas_aprobadas) && s.fechas_aprobadas.length
+      ? s.fechas_aprobadas : s.fechas || []).map((x) => String(x).slice(0, 10));
+    sheets.notificar({
+      accion: 'emitido',
+      folio: emitido.folio,
+      alumno: s.nombre_declarado,
+      matricula: s.matricula_declarada,
+      tipo: (TIPOS[s.tipo] || {}).etiqueta || s.tipo,
+      dias: fechasEmitidas.length,
+      fechas: fechasEmitidas,
+      emitido_en: new Date().toISOString(),
+    });
+
+    eventos.emitir('cambio');
+    eventos.emitir('notificacion', {
+      nivel: 'exito',
+      mensaje: `Folio ${emitido.folio} emitido: PDF listo y ${enviados}/${dest.length} profesor(es) notificado(s).`,
+    });
+  } catch (e) {
+    console.error(`[procesarPdfYCorreos] folio ${emitido.folio}, intento ${intento + 1} falló:`, e.message);
+    if (intento < REINTENTOS_NOTIFICACION.length) {
+      setTimeout(
+        () => procesarPdfYCorreos(s, emitido, { diasTxt, frase, dest }, intento + 1),
+        REINTENTOS_NOTIFICACION[intento]
+      );
+    } else {
+      eventos.emitir('notificacion', {
+        nivel: 'error',
+        mensaje: `No se pudo terminar de emitir el folio ${emitido.folio} (PDF o correos). El folio ya existe; entra a Folios para revisarlo.`,
       });
-      enviados += 1;
-    } catch (e) {
-      console.error(`[aprobar] no se pudo enviar a ${p.profesor_correo}:`, e.message);
     }
   }
-  await db.query(
-    `UPDATE solicitud_profesores SET enviado_en = now() WHERE solicitud_id = $1 AND incluir = true`,
-    [s.id]
-  );
-
-  try {
-    await correoAlAlumno(s, { plantilla_clave: 'aprobado' }, { folio: emitido.folio });
-  } catch (e) {
-    console.error('[aprobar] no se pudo enviar acuse al alumno:', e.message);
-  }
-
-  const fechasEmitidas = (Array.isArray(s.fechas_aprobadas) && s.fechas_aprobadas.length
-    ? s.fechas_aprobadas : s.fechas || []).map((x) => String(x).slice(0, 10));
-  sheets.notificar({
-    accion: 'emitido',
-    folio: emitido.folio,
-    alumno: s.nombre_declarado,
-    matricula: s.matricula_declarada,
-    tipo: (TIPOS[s.tipo] || {}).etiqueta || s.tipo,
-    dias: fechasEmitidas.length,
-    fechas: fechasEmitidas,
-    emitido_en: new Date().toISOString(),
-  });
-
-  return { emitido, pdfOk, enviados };
 }
 
 /**
@@ -627,18 +646,14 @@ router.post('/:id/aprobar', puedeActuar, async (req, res, next) => {
       return res.json({ ok: true, estado: 'aprobada_pendiente_confirmacion', dias: fechasAprob.length });
     }
 
-    const { emitido, pdfOk, enviados } = await emitirYNotificar(s, {
-      usuario: req.usuario, ip: req.ip, diasTxt, frase, dest,
-    });
+    const emitido = await crearFolio(s, { usuario: req.usuario, ip: req.ip, dest });
     eventos.emitir('cambio');
-    res.json({
-      ok: true,
-      folio: emitido.folio,
-      pdf: pdfOk ? `/api/revision/${s.id}/pdf` : null,
-      pdf_generado: pdfOk,
-      profesores_notificados: enviados,
-      profesores_total: dest.length,
-    });
+    res.json({ ok: true, folio: emitido.folio, procesando: true });
+    // PDF + correos van después de responder (puede tardar varios segundos
+    // mandando uno por uno a cada profesor); si falla, procesarPdfYCorreos
+    // reintenta sola y al final avisa por SSE (toast) en vez de tumbar esta
+    // respuesta.
+    procesarPdfYCorreos(s, emitido, { diasTxt, frase, dest });
   } catch (e) {
     next(e);
   }
@@ -665,18 +680,10 @@ router.post('/:id/confirmar', soloSupervisor, async (req, res, next) => {
       plantillaId: s.plantilla_cuerpo_id, libre: '', vars: varsPlantilla(s, { dias: diasTxt }),
     });
 
-    const { emitido, pdfOk, enviados } = await emitirYNotificar(s, {
-      usuario: req.usuario, ip: req.ip, diasTxt, frase, dest,
-    });
+    const emitido = await crearFolio(s, { usuario: req.usuario, ip: req.ip, dest });
     eventos.emitir('cambio');
-    res.json({
-      ok: true,
-      folio: emitido.folio,
-      pdf: pdfOk ? `/api/revision/${s.id}/pdf` : null,
-      pdf_generado: pdfOk,
-      profesores_notificados: enviados,
-      profesores_total: dest.length,
-    });
+    res.json({ ok: true, folio: emitido.folio, procesando: true });
+    procesarPdfYCorreos(s, emitido, { diasTxt, frase, dest });
   } catch (e) {
     next(e);
   }

@@ -1,10 +1,13 @@
 'use strict';
 
 /**
- * Pub/sub muy simple en memoria para avisar a la Bandeja del personal que
- * "algo cambió" (nueva solicitud, aprobación, rechazo, confirmación) y así
- * pueda refrescarse sola por SSE en vez de necesitar F5. No manda datos, solo
- * la señal — el cliente vuelve a pedir /revision/cola como ya hacía.
+ * Pub/sub muy simple en memoria para avisar al personal por SSE de dos tipos
+ * de cosas:
+ * - 'cambio' / 'nueva_solicitud' / 'sesion': "algo cambió", sin datos extra —
+ *   el cliente vuelve a pedir lo que ya pedía (Bandeja, Usuarios).
+ * - 'notificacion': un aviso puntual con `nivel` ('exito'|'error') y
+ *   `mensaje` para mostrar como toast (p. ej. que terminó de emitirse un
+ *   folio en segundo plano, o que no se pudo después de reintentar).
  */
 const clientes = new Set();
 
@@ -13,8 +16,8 @@ function suscribir(res) {
   return () => clientes.delete(res);
 }
 
-function emitir(tipo = 'cambio') {
-  const linea = `data: ${JSON.stringify({ tipo, en: new Date().toISOString() })}\n\n`;
+function emitir(tipo = 'cambio', extra = {}) {
+  const linea = `data: ${JSON.stringify({ tipo, en: new Date().toISOString(), ...extra })}\n\n`;
   for (const res of clientes) {
     try {
       res.write(linea);
