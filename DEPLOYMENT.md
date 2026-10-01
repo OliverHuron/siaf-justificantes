@@ -32,9 +32,8 @@ pm2 -v
 cloudflared --version
 ```
 
-> **Fase 1**: la generación del PDF del oficio usa Chromium headless (Puppeteer). Cuando se
-> llegue a esa fase habrá que instalar las librerías del sistema que Chromium necesita
-> (`libnss3`, `libatk-1.0-0`, `libgbm1`, `libasound2`, etc.). En Fase 0 no hace falta.
+> **Fase 1**: la generación del PDF del oficio usa `pdf-lib` (sin navegador headless),
+> así que no hace falta instalar Chromium ni sus librerías de sistema.
 
 ---
 
